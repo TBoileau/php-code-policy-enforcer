@@ -1,0 +1,17 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__.'/../vendor/autoload.php';
+
+use Symfony\Component\Console\Application;
+use TBoileau\PhpCodePolicyEnforcer\Command\CheckCommand;
+use TBoileau\PhpCodePolicyEnforcer\Command\CompileCommand;
+
+$application = new Application();
+
+$application->add(new CompileCommand());
+$application->add(new CheckCommand());
+
+$application->run();
