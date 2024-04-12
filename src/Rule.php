@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace TBoileau\PhpCodePolicyEnforcer;
 
+use Closure;
 use LogicException;
 use TBoileau\PhpCodePolicyEnforcer\ClassMapper\ClassMap;
-use TBoileau\PhpCodePolicyEnforcer\Expression\Condition;
 use TBoileau\PhpCodePolicyEnforcer\Expression\Expression;
 use TBoileau\PhpCodePolicyEnforcer\Expression\LogicalExpression;
 use TBoileau\PhpCodePolicyEnforcer\Expression\Type;
+use TBoileau\PhpCodePolicyEnforcer\Report\Enum\State;
+use TBoileau\PhpCodePolicyEnforcer\Report\RuleSetReport;
+use TBoileau\PhpCodePolicyEnforcer\Templating\Templating;
+
+use function Symfony\Component\String\u;
 
 final class Rule
 {
@@ -81,50 +86,6 @@ final class Rule
         return $this->reason;
     }
 
-    /**
-     * @return iterable<Result|null>
-     */
-    public function check(): iterable
-    {
-        if (null === $this->classMap) {
-            throw new LogicException('You must provide a class map');
-        }
-
-        /** @var Result[] $results */
-        $results = [];
-
-        $on = static function (Expression $expression, bool $result, mixed $value) use (&$results): void {
-            if ($expression instanceof Condition) {
-                $results[] = new Result($expression, $result, $value);
-
-                return;
-            }
-
-            $parent = new Result($expression, $result, $value);
-
-            foreach ($results as $tempResult) {
-                $parent->add($tempResult);
-            }
-
-            $results = [$parent];
-        };
-
-        foreach ($this->classMap as $class) {
-            if (!$this->getThat()->evaluate($class, null)) {
-                yield null;
-                continue;
-            }
-
-            $on($this->getShould(), $this->getShould()->evaluate($class, $on), $class);
-
-            yield $results[0];
-
-            $results = [];
-        }
-
-        return $results;
-    }
-
     public function getThat(): LogicalExpression
     {
         if (null === $this->that) {
@@ -141,5 +102,62 @@ final class Rule
         }
 
         return $this->should;
+    }
+
+    public function check(RuleSetReport $ruleSetReport, ?Closure $onHit): void
+    {
+        if (null === $this->classMap) {
+            throw new LogicException('You must provide a class map');
+        }
+
+        $ruleReport = $ruleSetReport->add($this);
+
+        foreach ($this->classMap as $class) {
+            $valueReport = $ruleReport->add($class);
+
+            if ($onHit !== null) {
+                $onHit->call($valueReport);
+            }
+
+            $this->getThat()->evaluate($class);
+
+            if ($valueReport->state()->equals(State::Ignored)) {
+                continue;
+            }
+
+            $this->getShould()->evaluate($class);
+        }
+    }
+
+    /**
+     * @return string[]
+     */
+    public function message(Templating $templating): array
+    {
+        $messages = [sprintf("For each %s", u($this->type()->label())->lower())];
+
+        $this->appendMessages($messages, $this->getThat()->message($templating), "That");
+        $this->appendMessages($messages, $this->getShould()->message($templating), "Should");
+
+        return $messages;
+    }
+
+    /**
+     * @param string[] $messages
+     * @param string[]|string $childMessages
+     */
+    private function appendMessages(array &$messages, array | string $childMessages, string $prefix): void
+    {
+        if (is_string($childMessages)) {
+            $messages[] = sprintf("%s %s", $prefix, $childMessages);
+        } else {
+            foreach ($childMessages as $k => $message) {
+                if ($k === 0) {
+                    $messages[] = sprintf("%s %s", $prefix, $message);
+                } else {
+                    $messages[] = sprintf("%s", $message);
+                }
+            }
+        }
     }
 }

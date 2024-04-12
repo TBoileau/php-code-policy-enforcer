@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace TBoileau\PhpCodePolicyEnforcer\Formatter;
 
-use TBoileau\PhpCodePolicyEnforcer\CodePolicy;
+use TBoileau\PhpCodePolicyEnforcer\Report\RunReport;
 
 interface Formatter
 {
-    public function format(CodePolicy $codePolicy): void;
+    public function format(RunReport $report): void;
 }

@@ -10,6 +10,8 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use TBoileau\PhpCodePolicyEnforcer\CodePolicy;
+use TBoileau\PhpCodePolicyEnforcer\Formatter\ConsoleFormatter;
+use TBoileau\PhpCodePolicyEnforcer\Report\Enum\Status;
 use TBoileau\PhpCodePolicyEnforcer\Runner;
 
 class CheckCommand extends Command
@@ -36,7 +38,6 @@ class CheckCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $io = new SymfonyStyle($input, $output);
 
         /** @var string $codePolicyFile */
         $codePolicyFile = $input->getOption('config');
@@ -49,29 +50,30 @@ class CheckCommand extends Command
         /** @var CodePolicy $codePolicy  */
         $codePolicy = require $codePolicyFile;
 
-        $output->writeln(sprintf('<info>Checking rules from %s</info>', $codePolicyFile));
+        $io = new SymfonyStyle($input, $output);
+
+        $io->title('PHP Code Policy Enforcer');
 
         $io->progressStart(count($codePolicy));
 
-        $runner = new Runner($codePolicy);
+        $report = (new Runner($codePolicy))
+            ->onHit(function () use ($io): void {
+                $io->progressAdvance();
+            })
+            ->run();
 
-        $success = true;
+        $io->progressFinish();
 
-        foreach ($io->progressIterate($runner->run()) as $result) {
-            if ($result === null) {
-                continue;
-            }
+        $formatter = new ConsoleFormatter($input, $output);
 
-            $success = $success && $result->result();
-        }
+        $formatter->format($report);
 
-        if (!$success) {
-            $io->error('Some violations found. Please fix them before commiting your code.');
+        if ($report->has(Status::Failed)) {
+            $io->error('Some violations found. Please fix them before commit.');
             return Command::FAILURE;
         }
 
         $io->success('No violations found. Well done !');
-
         return Command::SUCCESS;
     }
 }

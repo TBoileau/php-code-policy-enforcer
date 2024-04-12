@@ -15,7 +15,7 @@ use Traversable;
 /**
  * @template-implements IteratorAggregate<Rule>
  */
-final class ClassSet implements Countable, IteratorAggregate
+final class RuleSet implements Countable, IteratorAggregate
 {
     /**
      * @var Rule[]
@@ -72,6 +72,6 @@ final class ClassSet implements Countable, IteratorAggregate
 
     public function count(): int
     {
-        return count($this->rules) * count($this->classMap);
+        return count($this->rules);
     }
 }

@@ -7,7 +7,12 @@ namespace TBoileau\PhpCodePolicyEnforcer\Expression;
 use ArrayAccess;
 use Closure;
 use IteratorAggregate;
+use LogicException;
+use TBoileau\PhpCodePolicyEnforcer\Evaluator\Evaluator;
+use TBoileau\PhpCodePolicyEnforcer\Templating\Templating;
 use Traversable;
+
+use function Symfony\Component\String\u;
 
 /**
  * @implements IteratorAggregate<Expression>
@@ -21,6 +26,8 @@ final class LogicalExpression implements Expression, IteratorAggregate, ArrayAcc
     private array $children = [];
 
     private ?LogicalExpression $parent = null;
+
+    private ?Closure $onEvaluate = null;
 
     public function __construct(private readonly Operator $operator = Operator::And)
     {
@@ -43,50 +50,39 @@ final class LogicalExpression implements Expression, IteratorAggregate, ArrayAcc
         return $this->parent;
     }
 
+    public function isRoot(): bool
+    {
+        return $this->level() === 0;
+    }
+
+    public function level(): int
+    {
+        return null === $this->parent ? 0 : $this->parent->level() + 1;
+    }
+
     public function add(Expression $expression): void
     {
         $this->children[] = $expression->attachTo($this);
     }
 
-    public function evaluate(mixed $value, ?Closure $on = null): bool
+    public function onEvaluate(Closure $onEvaluate): void
     {
-        $result = match ($this->operator) {
-            Operator::And => (function (mixed $value, ?Closure $on): bool {
-                foreach ($this as $child) {
-                    if (!$child->evaluate($value, $on)) {
-                        return false;
-                    }
-                }
+        $this->onEvaluate = $onEvaluate;
 
-                return true;
-            })($value, $on),
-            Operator::Or => (function (mixed $value, ?Closure $on): bool {
-                foreach ($this as $child) {
-                    if (!$child->evaluate($value, $on)) {
-                        return true;
-                    }
-                }
-
-                return false;
-            })($value, $on),
-            Operator::Xor => (function (mixed $value, ?Closure $on): bool {
-                $count = 0;
-                foreach ($this as $child) {
-                    if ($child->evaluate($value, $on)) {
-                        $count++;
-                    }
-                }
-
-                return 1 === $count;
-            })($value, $on),
-            Operator::Not => (function (mixed $value, ?Closure $on): bool {
-                return !$this->children[0]->evaluate($value, $on);
-            })($value, $on),
-        };
-
-        if (null !== $on) {
-            $on($this, $result, $value);
+        foreach ($this->children as $child) {
+            $child->onEvaluate($onEvaluate);
         }
+    }
+
+    public function evaluate(mixed $value): bool
+    {
+        $result = Evaluator::evaluate($this, $value);
+
+        if (null === $this->onEvaluate) {
+            throw new LogicException('onEvaluate must be set');
+        }
+
+        $this->onEvaluate->call($this, $result);
 
         return $result;
     }
@@ -129,5 +125,57 @@ final class LogicalExpression implements Expression, IteratorAggregate, ArrayAcc
     public function offsetUnset(mixed $offset): void
     {
         unset($this->children[$offset]);
+    }
+
+    public function message(Templating $templating): array | string
+    {
+        if (count($this->children) === 1) {
+            return $this->children[0]->message($templating);
+        }
+
+        if ($this->operator === Operator::Not) {
+            $messages = $this->children[0]->message($templating);
+
+            if (is_string($messages)) {
+                return $templating->render('not {{ message }}', ['message' => $messages]);
+            }
+
+            $messages[0] = $templating->render('not {{ message }}', ['message' => $messages[0]]);
+
+            return $messages;
+        }
+
+        $messages = [];
+
+        foreach ($this->children as $i => $child) {
+            $childMessages = $child->message($templating);
+            $indentation = $i === 0 ? '' : u('')->padStart($child->level() * 2, ' ');
+            $operator = $i === 0 ? '' : sprintf('%s ', $this->operator->value);
+
+            if (is_string($childMessages)) {
+                $messages[] = $templating->render(
+                    '{{ indentation }}{{ operator }}{{ message }}',
+                    [
+                        'indentation' => $indentation,
+                        'message' => $childMessages,
+                        'operator' => $operator
+                    ]
+                );
+                continue;
+            }
+
+            foreach ($childMessages as $k => $childMessage) {
+                $messages[] = $templating->render(
+                    '{{ indentation }} {{ operator }} {{ message }}',
+                    [
+                        'indentation' => $indentation,
+                        'message' => $childMessage,
+                        'operator' => $this->operator->value
+                    ]
+                );
+            }
+        }
+
+        return $messages;
     }
 }
