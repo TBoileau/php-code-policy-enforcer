@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace TBoileau\PhpCodePolicyEnforcer;
 
 use Cake\Chronos\Chronos;
-use TBoileau\PhpCodePolicyEnforcer\Expression\Condition;
+use TBoileau\PhpCodePolicyEnforcer\Expression\ConditionalExpression;
 use TBoileau\PhpCodePolicyEnforcer\Expression\Expression;
 use TBoileau\PhpCodePolicyEnforcer\Expression\Operator;
 
@@ -24,7 +24,7 @@ final readonly class Compiler
 
     private static function compileExpression(Expression $expression): array
     {
-        if ($expression instanceof Condition) {
+        if ($expression instanceof ConditionalExpression) {
             return [
                 'not' => $expression->parent()->operator() === Operator::Not,
                 'validator' => $expression->name(),

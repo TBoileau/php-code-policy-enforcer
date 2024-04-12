@@ -9,34 +9,34 @@ use IteratorAggregate;
 use Traversable;
 
 /**
- * @template-implements IteratorAggregate<ClassSet>
+ * @template-implements IteratorAggregate<RuleSet>
  */
 final class CodePolicy implements Countable, IteratorAggregate
 {
     /**
-     * @var ClassSet[]
+     * @var RuleSet[]
      */
-    private array $classSets = [];
+    private array $ruleSets = [];
 
-    public function add(ClassSet $classSet): self
+    public function add(RuleSet $ruleSet): self
     {
-        $this->classSets[] = $classSet;
+        $this->ruleSets[] = $ruleSet;
 
         return $this;
     }
 
     /**
-     * @return Traversable<ClassSet>
+     * @return Traversable<RuleSet>
      */
     public function getIterator(): Traversable
     {
-        foreach ($this->classSets as $classSet) {
-            yield $classSet;
+        foreach ($this->ruleSets as $ruleSet) {
+            yield $ruleSet;
         }
     }
 
     public function count(): int
     {
-        return array_sum(array_map('count', $this->classSets));
+        return count($this->ruleSets);
     }
 }

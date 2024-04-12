@@ -19,7 +19,8 @@
         "php": ">=8.2",
         "symfony/console": "6.4.*",
         "cakephp/chronos": "^3.0",
-        "twig/twig": "^3.8"
+        "twig/twig": "^3.8",
+        "symfony/string": "6.4"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.0",
