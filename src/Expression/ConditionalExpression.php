@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace TBoileau\PhpCodePolicyEnforcer\Expression;
 
 use Closure;
+use LogicException;
+use TBoileau\PhpCodePolicyEnforcer\Templating\Templating;
 
-final class Condition implements Expression
+final class ConditionalExpression implements Expression
 {
     private LogicalExpression $parent;
+
+    private ?Closure $onEvaluate = null;
 
     /**
      * @param Closure(mixed): bool $validator
@@ -18,8 +22,14 @@ final class Condition implements Expression
         private readonly string  $name,
         private readonly Closure $validator,
         private readonly array   $parameters = [],
+        private readonly string  $error = '',
         private readonly string  $message = ''
     ) {
+    }
+
+    public function onEvaluate(Closure $onEvaluate): void
+    {
+        $this->onEvaluate = $onEvaluate;
     }
 
     public function attachTo(LogicalExpression $parent): Expression
@@ -34,13 +44,15 @@ final class Condition implements Expression
         return $this->name;
     }
 
-    public function evaluate(mixed $value, ?Closure $on = null): bool
+    public function evaluate(mixed $value): bool
     {
         $result = ($this->validator)($value);
 
-        if (null !== $on) {
-            $on($this, $result, $value);
+        if (null === $this->onEvaluate) {
+            throw new LogicException('You must define a callback to evaluate the expression.');
         }
+
+        $this->onEvaluate->call($this, $result);
 
         return $result;
     }
@@ -58,8 +70,23 @@ final class Condition implements Expression
         return $this->parent;
     }
 
-    public function message(): string
+    public function isRoot(): bool
     {
-        return $this->message;
+        return false;
+    }
+
+    public function level(): int
+    {
+        return $this->parent->level() + 1;
+    }
+
+    public function error(): string
+    {
+        return $this->error;
+    }
+
+    public function message(Templating $templating): string
+    {
+        return $templating->render($this->message, $this->parameters);
     }
 }

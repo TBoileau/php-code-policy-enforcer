@@ -2,12 +2,13 @@
 
 ## Configuration
 Example of configuration file `php-code-policy-enforcer.php`:
+
 ```php
 <?php
 
 declare(strict_types=1);
 
-use TBoileau\PhpCodePolicyEnforcer\ClassSet;
+use TBoileau\PhpCodePolicyEnforcer\RuleSet;
 use TBoileau\PhpCodePolicyEnforcer\CodePolicy;
 use TBoileau\PhpCodePolicyEnforcer\Rule;
 
@@ -25,7 +26,7 @@ use function TBoileau\PhpCodePolicyEnforcer\Lib\orX;
 use function TBoileau\PhpCodePolicyEnforcer\Lib\xorX;
 
 return (new CodePolicy())->add(
-    ClassSet::scan(__DIR__ . '/../src')
+    RuleSet::scan(__DIR__ . '/../src')
         ->add(
             Rule::classes()
                 ->that(residesIn('TBoileau\PhpCodePolicyEnforcer'))
@@ -56,3 +57,5 @@ return (new CodePolicy())->add(
 ```bash
 php bin-stub/php-code-policy-enforcer check --config=php-code-policy-enforcer.php
 ```
+
+![](https://github.com/Your_Repository_Name/Your_GIF_Name.gif)
