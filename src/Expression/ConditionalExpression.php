@@ -22,7 +22,6 @@ final class ConditionalExpression implements Expression
         private readonly string  $name,
         private readonly Closure $validator,
         private readonly array   $parameters = [],
-        private readonly string  $error = '',
         private readonly string  $message = ''
     ) {
     }
@@ -48,11 +47,9 @@ final class ConditionalExpression implements Expression
     {
         $result = ($this->validator)($value);
 
-        if (null === $this->onEvaluate) {
-            throw new LogicException('You must define a callback to evaluate the expression.');
+        if (null !== $this->onEvaluate) {
+            $this->onEvaluate->call($this, $result);
         }
-
-        $this->onEvaluate->call($this, $result);
 
         return $result;
     }
@@ -78,11 +75,6 @@ final class ConditionalExpression implements Expression
     public function level(): int
     {
         return $this->parent->level() + 1;
-    }
-
-    public function error(): string
-    {
-        return $this->error;
     }
 
     public function message(Templating $templating): string

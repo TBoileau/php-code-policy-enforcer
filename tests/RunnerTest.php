@@ -10,9 +10,7 @@ use TBoileau\PhpCodePolicyEnforcer\Reflection\ReflectionClass;
 use TBoileau\PhpCodePolicyEnforcer\Report\Enum\State;
 use TBoileau\PhpCodePolicyEnforcer\Report\Enum\Status;
 use TBoileau\PhpCodePolicyEnforcer\Report\RuleReport;
-use TBoileau\PhpCodePolicyEnforcer\Report\RuleSetReport;
 use TBoileau\PhpCodePolicyEnforcer\Report\ValueReport;
-use TBoileau\PhpCodePolicyEnforcer\RuleSet;
 use TBoileau\PhpCodePolicyEnforcer\CodePolicy;
 use TBoileau\PhpCodePolicyEnforcer\Rule;
 use TBoileau\PhpCodePolicyEnforcer\Runner;
@@ -20,19 +18,22 @@ use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Bar;
 use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Baz;
 use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Corge;
 use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Foo;
+use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Grault\Garply;
 use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Quux;
 use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Qux;
 
+use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Xyzzy;
+
 use function TBoileau\PhpCodePolicyEnforcer\Lib\andX;
-use function TBoileau\PhpCodePolicyEnforcer\Lib\Class\hasMethod;
-use function TBoileau\PhpCodePolicyEnforcer\Lib\Class\hasProperty;
-use function TBoileau\PhpCodePolicyEnforcer\Lib\Class\isAbstract;
-use function TBoileau\PhpCodePolicyEnforcer\Lib\Class\isEnum;
-use function TBoileau\PhpCodePolicyEnforcer\Lib\Class\isFinal;
-use function TBoileau\PhpCodePolicyEnforcer\Lib\Class\isInterface;
-use function TBoileau\PhpCodePolicyEnforcer\Lib\Class\isSubclassOf;
-use function TBoileau\PhpCodePolicyEnforcer\Lib\Class\matchWith;
-use function TBoileau\PhpCodePolicyEnforcer\Lib\Class\residesIn;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\hasMethod;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\hasProperty;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\isAbstract;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\isEnum;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\isFinal;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\isInterface;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\isSubclassOf;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\matchWith;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\residesIn;
 use function TBoileau\PhpCodePolicyEnforcer\Lib\not;
 use function TBoileau\PhpCodePolicyEnforcer\Lib\orX;
 use function TBoileau\PhpCodePolicyEnforcer\Lib\xorX;
@@ -85,10 +86,10 @@ final class RunnerTest extends TestCase
 
         $report = $runner->run();
 
-        self::assertCount(30, $report);
+        self::assertCount(36, $report);
 
         self::assertRuleReport(
-            10,
+            12,
             Status::Failed,
             [
                 [CheckCommandTest::class, State::Ignored, null],
@@ -97,15 +98,17 @@ final class RunnerTest extends TestCase
                 [Baz::class, State::Evaluated, Status::Failed],
                 [Corge::class, State::Evaluated, Status::Failed],
                 [Foo::class, State::Evaluated, Status::Failed],
+                [Garply::class, State::Evaluated, Status::Failed],
                 [Quux::class, State::Evaluated, Status::Failed],
                 [Qux::class, State::Evaluated, Status::Failed],
-                [RunnerTest::class, State::Ignored, null]
+                [Xyzzy::class, State::Evaluated, Status::Failed],
+                [RunnerTest::class, State::Ignored, null],
             ],
             $report[0]
         );
 
         self::assertRuleReport(
-            10,
+            12,
             Status::Succeeded,
             [
                 [CheckCommandTest::class, State::Ignored, null],
@@ -114,15 +117,17 @@ final class RunnerTest extends TestCase
                 [Baz::class, State::Evaluated, Status::Succeeded],
                 [Corge::class, State::Evaluated, Status::Succeeded],
                 [Foo::class, State::Evaluated, Status::Succeeded],
+                [Garply::class, State::Evaluated, Status::Succeeded],
                 [Quux::class, State::Evaluated, Status::Succeeded],
                 [Qux::class, State::Evaluated, Status::Succeeded],
-                [RunnerTest::class, State::Ignored, null]
+                [Xyzzy::class, State::Evaluated, Status::Succeeded],
+                [RunnerTest::class, State::Ignored, null],
             ],
             $report[1]
         );
 
         self::assertRuleReport(
-            10,
+            12,
             Status::Succeeded,
             [
                 [CheckCommandTest::class, State::Evaluated, Status::Succeeded],
@@ -131,9 +136,11 @@ final class RunnerTest extends TestCase
                 [Baz::class, State::Ignored, null],
                 [Corge::class, State::Ignored, null],
                 [Foo::class, State::Ignored, null],
+                [Garply::class, State::Ignored, null],
                 [Quux::class, State::Ignored, null],
                 [Qux::class, State::Ignored, null],
-                [RunnerTest::class, State::Evaluated, Status::Succeeded]
+                [Xyzzy::class, State::Ignored, null],
+                [RunnerTest::class, State::Evaluated, Status::Succeeded],
             ],
             $report[2]
         );
