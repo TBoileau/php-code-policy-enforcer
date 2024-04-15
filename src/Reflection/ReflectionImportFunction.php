@@ -6,19 +6,15 @@ namespace TBoileau\PhpCodePolicyEnforcer\Reflection;
 
 use ReflectionFunction;
 
-final readonly class ReflectionImportFunction
+final readonly class ReflectionImportFunction extends ReflectionImport
 {
-    public function __construct(private string $function, private ?string $alias = null)
-    {
-    }
-
     public function getFunction(): ReflectionFunction
     {
-        return new ReflectionFunction($this->function);
+        return new ReflectionFunction($this->name);
     }
 
-    public function getAlias(): ?string
+    public function isNamespace(): bool
     {
-        return $this->alias;
+        return !function_exists($this->name);
     }
 }

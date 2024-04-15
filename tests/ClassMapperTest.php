@@ -16,7 +16,7 @@ final class ClassMapperTest extends TestCase
     {
         $classMap = ClassMapper::generateClassMap(__DIR__ . '/Fixtures');
 
-        self::assertCount(6, $classMap);
+        self::assertCount(8, $classMap);
         self::assertContainsOnlyInstancesOf(ReflectionClass::class, $classMap);
     }
 }
