@@ -6,19 +6,15 @@ namespace TBoileau\PhpCodePolicyEnforcer\Reflection;
 
 use ReflectionClass as InternalReflectionClass;
 
-final readonly class ReflectionImportClass
+final readonly class ReflectionImportClass extends ReflectionImport
 {
-    public function __construct(private string $class, private ?string $alias = null)
-    {
-    }
-
     public function getClass(): InternalReflectionClass
     {
-        return new InternalReflectionClass($this->class);
+        return new InternalReflectionClass($this->name);
     }
 
-    public function getAlias(): ?string
+    public function isNamespace(): bool
     {
-        return $this->alias;
+        return !class_exists($this->name);
     }
 }

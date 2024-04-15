@@ -7,6 +7,7 @@ namespace TBoileau\PhpCodePolicyEnforcer\ClassMapper;
 use ReflectionException;
 use Symfony\Component\Finder\Finder;
 use TBoileau\PhpCodePolicyEnforcer\Reflection\ReflectionClass;
+use TBoileau\PhpCodePolicyEnforcer\Reflection\ReflectionImport;
 use TBoileau\PhpCodePolicyEnforcer\Reflection\ReflectionImportClass;
 use TBoileau\PhpCodePolicyEnforcer\Reflection\ReflectionImportFunction;
 
@@ -39,27 +40,22 @@ final readonly class ClassMapper
             $fqcn = sprintf('%s\\%s', $namespace, $file->getBasename('.php'));
 
             if (!class_exists($fqcn) && !interface_exists($fqcn) && !trait_exists($fqcn) && !enum_exists($fqcn)) {
-                var_dump($file->getRealPath());
                 continue;
             }
 
             if (preg_match(sprintf('/(.+)(?:class|interface|enum|trait)[ ]+%s/s', $className), $contents, $matches) === 0) {
-                var_dump($file->getRealPath());
                 continue;
             }
 
             $contents = $matches[0];
 
             if (preg_match_all('/use(?:\sfunction)?\s+([^;]+);/', $contents, $matches) === 0 || count($matches[0]) === 0) {
-                $classes[] = new ReflectionClass($fqcn, []);
+                $classes[$fqcn] = new ReflectionClass($fqcn, []);
                 continue;
             }
 
-            /** @var ReflectionImportClass[] $importedClasses */
-            $importedClasses = [];
-
-            /** @var ReflectionImportFunction[] $importedFunctions */
-            $importedFunctions = [];
+            /** @var ReflectionImport[] $imports */
+            $imports = [];
 
             foreach ($matches[0] as $import) {
                 if (!is_string($import)) {
@@ -78,9 +74,13 @@ final readonly class ClassMapper
 
                 if (preg_match('/^[^{}]*$/', $import, $matches) !== 0) {
                     $subClass = explode(' as ', $import);
-                    match ($type) {
-                        'function' => $importedFunctions[] = new ReflectionImportFunction(trim($subClass[0]), !isset($subClass[1]) ? null : trim($subClass[1])),
-                        'class' => $importedClasses[] = new ReflectionImportClass(trim($subClass[0]), !isset($subClass[1]) ? null : trim($subClass[1])),
+
+                    $alias = !isset($subClass[1]) ? null : trim($subClass[1]);
+                    $subFqcn = trim($subClass[0]);
+
+                    $imports[] = match ($type) {
+                        'function' => new ReflectionImportFunction($subFqcn, $alias),
+                        'class' => new ReflectionImportClass($subFqcn, $alias),
                     };
                     continue;
                 }
@@ -92,16 +92,17 @@ final readonly class ClassMapper
                     foreach ($subClasses as $subClassName) {
                         $subClass = explode(' as ', $subClassName);
                         $subFqcn = $namespace.trim($subClass[0]);
+                        $alias = !isset($subClass[1]) ? null : trim($subClass[1]);
 
-                        match ($type) {
-                            'function' => $importedFunctions[] = new ReflectionImportFunction($subFqcn, !isset($subClass[1]) ? null : trim($subClass[1])),
-                            'class' => $importedClasses[] = new ReflectionImportClass($subFqcn, !isset($subClass[1]) ? null : trim($subClass[1])),
+                        $imports[] = match ($type) {
+                            'function' => new ReflectionImportFunction($subFqcn, $alias),
+                            'class' => new ReflectionImportClass($subFqcn, $alias),
                         };
                     }
                 }
             }
 
-            $classes[] = new ReflectionClass($fqcn, $importedClasses, $importedFunctions);
+            $classes[$fqcn] = new ReflectionClass($fqcn, $imports);
         }
 
         return new ClassMap($classes);

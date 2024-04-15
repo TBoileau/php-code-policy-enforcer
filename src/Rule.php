@@ -12,7 +12,6 @@ use TBoileau\PhpCodePolicyEnforcer\Expression\LogicalExpression;
 use TBoileau\PhpCodePolicyEnforcer\Expression\Type;
 use TBoileau\PhpCodePolicyEnforcer\Report\Enum\State;
 use TBoileau\PhpCodePolicyEnforcer\Report\RuleReport;
-use TBoileau\PhpCodePolicyEnforcer\Report\RunReport;
 use TBoileau\PhpCodePolicyEnforcer\Templating\Templating;
 
 use function Symfony\Component\String\u;

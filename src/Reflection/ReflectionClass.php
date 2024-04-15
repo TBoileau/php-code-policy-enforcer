@@ -11,31 +11,21 @@ final class ReflectionClass extends InternalReflectionClass
 {
     /**
      * @param object|class-string $objectOrClass
-     * @param ReflectionImportClass[] $importedClasses,
-     * @param ReflectionImportFunction[] $importedFunction,
+     * @param ReflectionImport[] $imports,
      * @throws ReflectionException
      */
     public function __construct(
         object|string $objectOrClass,
-        private readonly array $importedClasses = [],
-        private readonly array $importedFunction = []
+        private readonly array $imports = []
     ) {
         parent::__construct($objectOrClass);
     }
 
     /**
-     * @return ReflectionImportClass[]
+     * @return ReflectionImport[]
      */
-    public function getImportedClasses(): array
+    public function getImports(): array
     {
-        return $this->importedClasses;
-    }
-
-    /**
-     * @return ReflectionImportFunction[]
-     */
-    public function getImportedFunctions(): array
-    {
-        return $this->importedFunction;
+        return $this->imports;
     }
 }
