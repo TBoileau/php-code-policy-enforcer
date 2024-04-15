@@ -5,68 +5,105 @@ declare(strict_types=1);
 namespace TBoileau\PhpCodePolicyEnforcer\ClassMapper;
 
 use ReflectionException;
-use RuntimeException;
-use Symfony\Component\Process\Exception\ProcessFailedException;
-use Symfony\Component\Process\Process;
+use Symfony\Component\Finder\Finder;
+use TBoileau\PhpCodePolicyEnforcer\Reflection\ReflectionClass;
+use TBoileau\PhpCodePolicyEnforcer\Reflection\ReflectionImportClass;
+use TBoileau\PhpCodePolicyEnforcer\Reflection\ReflectionImportFunction;
 
 final readonly class ClassMapper
 {
     /**
-     * @param string $directory
-     * @return ClassMap
      * @throws ReflectionException
      */
-    public static function generateClassMap(string $directory): ClassMap
+    public static function generateClassMap(string ...$directories): ClassMap
     {
-        ['executablePath' => $executablePath, 'outputFile' => $outputFile] = self::determineExecutableName();
+        $finder = (new Finder())
+            ->files()
+            ->in(...$directories)
+            ->name('*.php')
+            ->contains('/(?m)^namespace\s+([^\s;]+);/')
+            ->sortByName(true);
 
-        $process = new Process([$executablePath, '--dir', $directory , '--out', $outputFile]);
-        $process->run();
+        /** @var ReflectionClass[] $classes */
+        $classes = [];
 
-        if (!$process->isSuccessful()) {
-            throw new ProcessFailedException($process);
+        foreach ($finder as $file) {
+            $contents = $file->getContents();
+
+            if (preg_match('/(?m)^namespace\s+(?<namespace>[^\s;]+);/', $contents, $matches) === 0) {
+                continue;
+            }
+
+            $namespace = $matches['namespace'];
+            $className = $file->getBasename('.php');
+            $fqcn = sprintf('%s\\%s', $namespace, $file->getBasename('.php'));
+
+            if (!class_exists($fqcn) && !interface_exists($fqcn) && !trait_exists($fqcn) && !enum_exists($fqcn)) {
+                var_dump($file->getRealPath());
+                continue;
+            }
+
+            if (preg_match(sprintf('/(.+)(?:class|interface|enum|trait)[ ]+%s/s', $className), $contents, $matches) === 0) {
+                var_dump($file->getRealPath());
+                continue;
+            }
+
+            $contents = $matches[0];
+
+            if (preg_match_all('/use(?:\sfunction)?\s+([^;]+);/', $contents, $matches) === 0 || count($matches[0]) === 0) {
+                $classes[] = new ReflectionClass($fqcn, []);
+                continue;
+            }
+
+            /** @var ReflectionImportClass[] $importedClasses */
+            $importedClasses = [];
+
+            /** @var ReflectionImportFunction[] $importedFunctions */
+            $importedFunctions = [];
+
+            foreach ($matches[0] as $import) {
+                if (!is_string($import)) {
+                    continue;
+                }
+
+                $import = preg_replace('/\s+/', ' ', str_replace(array("\r", "\n", ';'), '', str_replace(array(' {', '{ ', ' }', '} '), array('{', '{', '}', '}'), $import)));
+
+                if (null === $import) {
+                    continue;
+                }
+
+                $type = str_contains($import, 'function') ? 'function' : 'class';
+
+                $import = trim(str_replace(array("use function", "use"), '', $import));
+
+                if (preg_match('/^[^{}]*$/', $import, $matches) !== 0) {
+                    $subClass = explode(' as ', $import);
+                    match ($type) {
+                        'function' => $importedFunctions[] = new ReflectionImportFunction(trim($subClass[0]), !isset($subClass[1]) ? null : trim($subClass[1])),
+                        'class' => $importedClasses[] = new ReflectionImportClass(trim($subClass[0]), !isset($subClass[1]) ? null : trim($subClass[1])),
+                    };
+                    continue;
+                }
+
+                if (preg_match('/^([^{}]*)(?:\{([^{}]*)\})?$/', $import, $matches) !== 0) {
+                    $namespace = $matches[1];
+                    $subClasses = explode(',', $matches[2]);
+
+                    foreach ($subClasses as $subClassName) {
+                        $subClass = explode(' as ', $subClassName);
+                        $subFqcn = $namespace.trim($subClass[0]);
+
+                        match ($type) {
+                            'function' => $importedFunctions[] = new ReflectionImportFunction($subFqcn, !isset($subClass[1]) ? null : trim($subClass[1])),
+                            'class' => $importedClasses[] = new ReflectionImportClass($subFqcn, !isset($subClass[1]) ? null : trim($subClass[1])),
+                        };
+                    }
+                }
+            }
+
+            $classes[] = new ReflectionClass($fqcn, $importedClasses, $importedFunctions);
         }
 
-        /** @var array<string> $classes */
-        $classes = require $outputFile;
-
-        unlink($outputFile);
-
-        /** @var array<class-string> $classes */
-        $classes = array_filter(
-            $classes,
-            static fn (string $class): bool => class_exists($class) || interface_exists($class) || trait_exists($class)
-        );
-
-        sort($classes);
-
-        return ClassMap::fromArrayOfFqcn($classes);
-    }
-
-    /**
-     * @return array{executablePath: string, outputFile: string}
-     */
-    private static function determineExecutableName(): array
-    {
-        $osPart = match ($os = strtolower(PHP_OS)) {
-            'win' => 'windows',
-            default => $os,
-        };
-
-        $archPart = match ($arch = strtolower(php_uname('m'))) {
-            'arm64' => 'arm64',
-            default => 'amd64',
-        };
-
-        $executableName = sprintf('class_mapper-%s-%s', $osPart, $archPart);
-        $executablePath = __DIR__ . '/../../bin/' . $executableName;
-
-        $outputFile = sys_get_temp_dir() . '/' . uniqid('class_map-', true) . '.php';
-
-        if (!file_exists($executablePath)) {
-            throw new RuntimeException(sprintf('Executable not found for your platform (%s/%s): %s', $os, $arch, $executablePath));
-        }
-
-        return compact('executablePath', 'outputFile');
+        return new ClassMap($classes);
     }
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TBoileau\PhpCodePolicyEnforcer\Command;
+namespace TBoileau\PhpCodePolicyEnforcer\Cli\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -38,7 +38,6 @@ class CheckCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-
         /** @var string $codePolicyFile */
         $codePolicyFile = $input->getOption('config');
 
@@ -68,7 +67,7 @@ class CheckCommand extends Command
 
         $formatter->format($report);
 
-        if ($report->has(Status::Failed)) {
+        if (!$report->hasSucceeded()) {
             $io->error('Some violations found. Please fix them before commit.');
             return Command::FAILURE;
         }

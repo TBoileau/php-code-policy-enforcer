@@ -6,7 +6,7 @@ namespace TBoileau\PhpCodePolicyEnforcer\Tests;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use ReflectionClass;
+use TBoileau\PhpCodePolicyEnforcer\Reflection\ReflectionClass;
 use TBoileau\PhpCodePolicyEnforcer\Report\Enum\State;
 use TBoileau\PhpCodePolicyEnforcer\Report\Enum\Status;
 use TBoileau\PhpCodePolicyEnforcer\Report\RuleReport;
@@ -42,60 +42,50 @@ final class RunnerTest extends TestCase
     #[Test]
     public function shouldRunSuccessfully(): void
     {
-        $codePolicy = (new CodePolicy())
+        $codePolicy = CodePolicy::analyze(__DIR__)
             ->add(
-                RuleSet::scan(__DIR__)
-                    ->add(
-                        Rule::classes()
-                            ->that(residesIn('TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures'))
-                            ->should(
-                                orX(
-                                    isEnum(),
-                                    not(isInterface()),
-                                    xorX(
-                                        isFinal(),
-                                        not(isAbstract())
-                                    ),
-                                    not(
-                                        andX(
-                                            hasMethod('__invoke'),
-                                            hasProperty('bar')
-                                        )
-                                    )
-                                ),
-                                matchWith('/.+Controller$/')
+                Rule::classes()
+                    ->that(residesIn('TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures'))
+                    ->should(
+                        orX(
+                            isEnum(),
+                            not(isInterface()),
+                            xorX(
+                                isFinal(),
+                                not(isAbstract())
+                            ),
+                            not(
+                                andX(
+                                    hasMethod('__invoke'),
+                                    hasProperty('bar')
+                                )
                             )
-                            ->because('rule 1')
+                        ),
+                        matchWith('/.+Controller$/')
                     )
-                ->add(
-                    Rule::classes()
-                        ->that(residesIn('TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures'))
-                        ->should(not(isSubclassOf(TestCase::class)))
-                        ->because('rule 2')
-                )
+                    ->because('rule 1')
             )
             ->add(
-                RuleSet::scan(__DIR__ . '/')
-                    ->add(
-                        Rule::classes()
-                            ->that(isSubclassOf(TestCase::class))
-                            ->should(
-                                isFinal(),
-                                matchWith('/.+Test$/')
-                            )
-                            ->because('rule 3')
+                Rule::classes()
+                    ->that(residesIn('TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures'))
+                    ->should(not(isSubclassOf(TestCase::class)))
+                    ->because('rule 2')
+            )
+            ->add(
+                Rule::classes()
+                    ->that(isSubclassOf(TestCase::class))
+                    ->should(
+                        isFinal(),
+                        matchWith('/.+Test$/')
                     )
+                    ->because('rule 3')
             );
 
         $runner = new Runner($codePolicy);
 
         $report = $runner->run();
 
-        self::assertCount(3, $report);
-
-        $ruleSet1Report = $report[0];
-        self::assertInstanceOf(RuleSetReport::class, $ruleSet1Report);
-        self::assertCount(2, $ruleSet1Report);
+        self::assertCount(30, $report);
 
         self::assertRuleReport(
             10,
@@ -103,7 +93,6 @@ final class RunnerTest extends TestCase
             [
                 [CheckCommandTest::class, State::Ignored, null],
                 [ClassMapperTest::class, State::Ignored, null],
-                [CompilerTest::class, State::Ignored, null],
                 [Bar::class, State::Evaluated, Status::Failed],
                 [Baz::class, State::Evaluated, Status::Failed],
                 [Corge::class, State::Evaluated, Status::Failed],
@@ -112,7 +101,7 @@ final class RunnerTest extends TestCase
                 [Qux::class, State::Evaluated, Status::Failed],
                 [RunnerTest::class, State::Ignored, null]
             ],
-            $ruleSet1Report[0]
+            $report[0]
         );
 
         self::assertRuleReport(
@@ -121,7 +110,6 @@ final class RunnerTest extends TestCase
             [
                 [CheckCommandTest::class, State::Ignored, null],
                 [ClassMapperTest::class, State::Ignored, null],
-                [CompilerTest::class, State::Ignored, null],
                 [Bar::class, State::Evaluated, Status::Succeeded],
                 [Baz::class, State::Evaluated, Status::Succeeded],
                 [Corge::class, State::Evaluated, Status::Succeeded],
@@ -130,13 +118,8 @@ final class RunnerTest extends TestCase
                 [Qux::class, State::Evaluated, Status::Succeeded],
                 [RunnerTest::class, State::Ignored, null]
             ],
-            $ruleSet1Report[1]
+            $report[1]
         );
-
-        $ruleSet2Report = $report[1];
-        self::assertInstanceOf(RuleSetReport::class, $ruleSet2Report);
-        self::assertCount(1, $ruleSet2Report);
-        self::assertContainsOnlyInstancesOf(RuleReport::class, $ruleSet2Report);
 
         self::assertRuleReport(
             10,
@@ -144,7 +127,6 @@ final class RunnerTest extends TestCase
             [
                 [CheckCommandTest::class, State::Evaluated, Status::Succeeded],
                 [ClassMapperTest::class, State::Evaluated, Status::Succeeded],
-                [CompilerTest::class, State::Evaluated, Status::Succeeded],
                 [Bar::class, State::Ignored, null],
                 [Baz::class, State::Ignored, null],
                 [Corge::class, State::Ignored, null],
@@ -153,7 +135,7 @@ final class RunnerTest extends TestCase
                 [Qux::class, State::Ignored, null],
                 [RunnerTest::class, State::Evaluated, Status::Succeeded]
             ],
-            $ruleSet2Report[0]
+            $report[2]
         );
     }
 

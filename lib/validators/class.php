@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace TBoileau\PhpCodePolicyEnforcer\Lib\Class;
 
 use Countable;
-use ReflectionClass;
+use TBoileau\PhpCodePolicyEnforcer\Reflection\ReflectionClass;
 use TBoileau\PhpCodePolicyEnforcer\Expression\ConditionalExpression;
 
 function hasAttribute(string $attribute): ConditionalExpression

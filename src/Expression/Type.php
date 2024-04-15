@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace TBoileau\PhpCodePolicyEnforcer\Expression;
 
 use InvalidArgumentException;
-use ReflectionClass;
+use TBoileau\PhpCodePolicyEnforcer\Reflection\ReflectionClass;
 use ReflectionClassConstant;
 use ReflectionMethod;
 use ReflectionParameter;

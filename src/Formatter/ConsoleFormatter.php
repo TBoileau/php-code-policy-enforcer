@@ -33,97 +33,89 @@ final readonly class ConsoleFormatter implements Formatter
 
         $templating = new TwigTemplating();
 
-        foreach ($report as $ruleSetReport) {
-            foreach ($ruleSetReport as $ruleReport) {
-                $style->block($ruleReport->rule()->reason(), 'RULE', 'fg=black;bg=cyan;options=bold', ' ', true);
+        foreach ($report as $ruleReport) {
+            $style->block($ruleReport->rule()->reason(), 'RULE', 'fg=black;bg=cyan;options=bold', ' ', true);
 
-                $style->section('Description');
+            $style->section('Description');
 
-                $style->writeln(
-                    sprintf(
-                        "<fg=blue>%s</>",
-                        u(implode("\n", $ruleReport->rule()->message($templating)))
-                            ->replaceMatches(
-                                '/(?<instruction>For each|That|Should|and |or |xor |not )/',
-                                static fn (array $matches): string => sprintf("<fg=cyan;options=bold>%s</>", $matches['instruction'])
-                            )
-                    )
-                );
-
-                $style->newLine();
-
-                $table = new Table($this->output);
-                $table->setStyle('box');
-                $table->setHeaders([
-                    u($ruleReport->rule()->type()->label())->title()->toString(),
-                    'Status'
-                ]);
-
-                foreach ($ruleReport->filter(State::Evaluated) as $valueReport) {
-                    $table->addRow([
-                        $ruleReport->rule()->type()->str($valueReport->value()),
-                        new TableCell(
-                            $valueReport->status()->value,
-                            ['style' => new TableCellStyle(['align' => 'center'])]
+            $style->writeln(
+                sprintf(
+                    "<fg=blue>%s</>",
+                    u(implode("\n", $ruleReport->rule()->message($templating)))
+                        ->replaceMatches(
+                            '/(?<instruction>For each|That|Should|and |or |xor |not )/',
+                            static fn (array $matches): string => sprintf("<fg=cyan;options=bold>%s</>", $matches['instruction'])
                         )
-                    ]);
-                }
+                )
+            );
 
-                $style->section('Checks');
+            $style->newLine();
 
-                $table->render();
+            $table = new Table($this->output);
+            $table->setStyle('box');
+            $table->setHeaders([
+                u($ruleReport->rule()->type()->label())->title()->toString(),
+                'Status'
+            ]);
 
-                $style->newLine();
-
-                $violations = $ruleReport->filter(State::Evaluated, Status::Failed);
-
-                if (count($violations) > 0) {
-                    $style->section('Violations');
-
-                    foreach ($violations as $valueReport) {
-                        $table = new Table($this->output);
-                        $table->setStyle('box');
-                        $table->setHeaders([
-                            [new TableCell($ruleReport->rule()->type()->str($valueReport->value()), ['colspan' => 2])],
-                            ['Validator', 'Status']
-                        ]);
-                        $table->setRows(array_map(
-                            static fn (Report $report): array => [
-                                $report->expression()->message($templating),
-                                $report->status()->value,
-                            ],
-                            $valueReport->should()->filter(Type::Conditional),
-                        ));
-                        $table->render();
-                        $style->newLine();
-                    }
-                }
-
-                $style->section('Reports');
-
-                $path = realpath($ruleSetReport->ruleSet()->directory());
-
-                if ($path === false) {
-                    throw new RuntimeException(sprintf('The directory "%s" does not exist.', $ruleSetReport->ruleSet()->directory()));
-                }
-
-                $style->definitionList(
-                    ['Rule set' => sprintf('./%s/', str_replace(getcwd() . DIRECTORY_SEPARATOR, '', $path))],
-                    ['Parsed' => $ruleReport->count()],
-                    ['Ignored' => $ruleReport->count(State::Ignored)],
-                    ['Evaluated' => $ruleReport->count(State::Evaluated)],
-                    ['Succeeded' => $ruleReport->count(State::Evaluated, Status::Succeeded)],
-                    ['Failed' => $ruleReport->count(State::Evaluated, Status::Failed)],
-                );
-
-                if ($ruleReport->status() === Status::Succeeded) {
-                    $style->block('Rule passed', 'INFO', 'fg=black;bg=blue', ' ', true);
-                } else {
-                    $style->warning(sprintf('Rule failed with %s violations(s)', $ruleReport->count(State::Evaluated, Status::Failed)));
-                }
-
-                $style->newLine();
+            foreach ($ruleReport->filter(State::Evaluated) as $valueReport) {
+                $table->addRow([
+                    $ruleReport->rule()->type()->str($valueReport->value()),
+                    new TableCell(
+                        $valueReport->status()->value,
+                        ['style' => new TableCellStyle(['align' => 'center'])]
+                    )
+                ]);
             }
+
+            $style->section('Checks');
+
+            $table->render();
+
+            $style->newLine();
+
+            $violations = $ruleReport->filter(State::Evaluated, Status::Failed);
+
+            if (count($violations) > 0) {
+                $style->section('Violations');
+
+                foreach ($violations as $valueReport) {
+                    $table = new Table($this->output);
+                    $table->setStyle('box');
+                    $table->setHeaders([
+                        [new TableCell($ruleReport->rule()->type()->str($valueReport->value()), ['colspan' => 2])],
+                        ['Validator', 'Status']
+                    ]);
+                    $table->setRows(array_map(
+                        static fn (Report $report): array => [
+                            $report->expression()->message($templating),
+                            $report->status()->value,
+                        ],
+                        $valueReport->should()->filter(Type::Conditional),
+                    ));
+                    $table->render();
+                    $style->newLine();
+                }
+            }
+
+            $style->section('Reports');
+
+
+            $style->definitionList(
+                ['Parsed' => $ruleReport->count()],
+                ['Ignored' => $ruleReport->count(State::Ignored)],
+                ['Evaluated' => $ruleReport->count(State::Evaluated)],
+                ['Succeeded' => $ruleReport->count(State::Evaluated, Status::Succeeded)],
+                ['Failed' => $ruleReport->count(State::Evaluated, Status::Failed)],
+            );
+
+            if ($ruleReport->status() === Status::Succeeded) {
+                $style->block('Rule passed', 'INFO', 'fg=black;bg=blue', ' ', true);
+            } else {
+                $style->warning(sprintf('Rule failed with %s violations(s)', $ruleReport->count(State::Evaluated, Status::Failed)));
+            }
+
+            $style->newLine();
         }
     }
 }

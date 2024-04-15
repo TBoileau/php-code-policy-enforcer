@@ -9,7 +9,6 @@ parameters:
     paths:
         - ../src
         - ../tests
-    excludePaths:
-        - ../src/Compiler.php
     ignoreErrors:
         - '#generic class ReflectionClass#'
+        - '#class ReflectionClass constructor expects#'
