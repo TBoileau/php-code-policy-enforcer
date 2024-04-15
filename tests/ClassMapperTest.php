@@ -6,7 +6,7 @@ namespace TBoileau\PhpCodePolicyEnforcer\Tests;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use ReflectionClass;
+use TBoileau\PhpCodePolicyEnforcer\Reflection\ReflectionClass;
 use TBoileau\PhpCodePolicyEnforcer\ClassMapper\ClassMapper;
 
 final class ClassMapperTest extends TestCase

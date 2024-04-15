@@ -9,13 +9,10 @@ use TBoileau\PhpCodePolicyEnforcer\Report\RunReport;
 
 final class Runner
 {
-    private readonly RunReport $report;
-
     private ?Closure $onHit = null;
 
     public function __construct(private readonly CodePolicy $codePolicy)
     {
-        $this->report = new RunReport($this->codePolicy);
     }
 
     public function onHit(Closure $onHit): self
@@ -27,13 +24,12 @@ final class Runner
 
     public function run(): RunReport
     {
-        foreach ($this->codePolicy as $ruleSet) {
-            $ruleSetReport = $this->report->add($ruleSet);
-            foreach ($ruleSet as $rule) {
-                $rule->check($ruleSetReport, $this->onHit);
-            }
+        $runReport = new RunReport($this->codePolicy);
+
+        foreach ($this->codePolicy as $rule) {
+            $runReport->add($rule->check($this->codePolicy->classMap(), $this->onHit));
         }
 
-        return $this->report;
+        return $runReport;
     }
 }

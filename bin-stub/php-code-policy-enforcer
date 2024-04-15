@@ -3,15 +3,32 @@
 
 declare(strict_types=1);
 
-require __DIR__.'/../vendor/autoload.php';
+use TBoileau\PhpCodePolicyEnforcer\Cli\Application;
 
-use Symfony\Component\Console\Application;
-use TBoileau\PhpCodePolicyEnforcer\Command\CheckCommand;
-use TBoileau\PhpCodePolicyEnforcer\Command\CompileCommand;
+$composerAutoloadPath = null;
 
-$application = new Application();
+if (isset($GLOBALS['_composer_autoload_path']) && file_exists($GLOBALS['_composer_autoload_path'])) {
+    $composerAutoloadPath = $GLOBALS['_composer_autoload_path'];
+} else {
+    foreach (array(__DIR__ . '/../../../autoload.php', __DIR__ . '/../../autoload.php', __DIR__ . '/../vendor/autoload.php', __DIR__ . '/vendor/autoload.php') as $file) {
+        if (file_exists($file)) {
+            $composerAutoloadPath = $file;
+            break;
+        }
+    }
+}
 
-$application->add(new CompileCommand());
-$application->add(new CheckCommand());
+if (null === $composerAutoloadPath) {
+    fwrite(
+        STDERR,
+        'You need to set up the project dependencies using Composer:' . PHP_EOL . PHP_EOL .
+        '    composer install' . PHP_EOL . PHP_EOL .
+        'You can learn all about Composer on https://getcomposer.org/.' . PHP_EOL
+    );
 
-$application->run();
+    die(1);
+}
+
+require $composerAutoloadPath;
+
+(new Application())->run();
