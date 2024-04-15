@@ -20,7 +20,7 @@
         "symfony/console": "6.4.*",
         "cakephp/chronos": "^3.0",
         "twig/twig": "^3.8",
-        "symfony/string": "6.4"
+        "symfony/string": "6.4.*"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.0",
@@ -50,6 +50,7 @@
         "fix": "php-cs-fixer fix --config=tools/php-cs-fixer.php",
         "phpstan": "phpstan analyse --configuration=tools/phpstan.neon",
         "policy": "php bin-stub/php-code-policy-enforcer check --config=tools/php-code-policy-enforcer.php",
+        "compile": "php bin-stub/php-code-policy-enforcer compile",
         "qa": [
             "@phpstan",
             "@policy"

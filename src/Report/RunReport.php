@@ -9,18 +9,17 @@ use Countable;
 use IteratorAggregate;
 use TBoileau\PhpCodePolicyEnforcer\CodePolicy;
 use TBoileau\PhpCodePolicyEnforcer\Report\Enum\Status;
-use TBoileau\PhpCodePolicyEnforcer\RuleSet;
 
 /**
- * @implements IteratorAggregate<RuleSetReport>
- * @implements ArrayAccess<int, RuleSetReport>
+ * @implements IteratorAggregate<RuleReport>
+ * @implements ArrayAccess<int, RuleReport>
  */
 final class RunReport implements Countable, IteratorAggregate, ArrayAccess
 {
     use CollectionTrait;
 
     /**
-     * @var RuleSetReport[]
+     * @var RuleReport[]
      */
     protected array $children = [];
 
@@ -33,18 +32,15 @@ final class RunReport implements Countable, IteratorAggregate, ArrayAccess
         return $this->codePolicy;
     }
 
-    public function add(RuleSet $ruleSet): RuleSetReport
+    public function add(RuleReport $ruleReport): void
     {
-        $ruleSetReport = new RuleSetReport($ruleSet);
-        $this->children[] = $ruleSetReport;
-
-        return $ruleSetReport;
+        $this->children[] = $ruleReport;
     }
 
-    public function has(Status $status): bool
+    public function hasSucceeded(): bool
     {
-        foreach ($this->children as $child) {
-            if (!$child->has($status)) {
+        foreach ($this as $child) {
+            if ($child->has(Status::Failed)) {
                 return false;
             }
         }

@@ -11,7 +11,8 @@ use TBoileau\PhpCodePolicyEnforcer\Expression\Expression;
 use TBoileau\PhpCodePolicyEnforcer\Expression\LogicalExpression;
 use TBoileau\PhpCodePolicyEnforcer\Expression\Type;
 use TBoileau\PhpCodePolicyEnforcer\Report\Enum\State;
-use TBoileau\PhpCodePolicyEnforcer\Report\RuleSetReport;
+use TBoileau\PhpCodePolicyEnforcer\Report\RuleReport;
+use TBoileau\PhpCodePolicyEnforcer\Report\RunReport;
 use TBoileau\PhpCodePolicyEnforcer\Templating\Templating;
 
 use function Symfony\Component\String\u;
@@ -24,18 +25,11 @@ final class Rule
 
     private ?string $reason = null;
 
-    private ?ClassMap $classMap = null;
-
     /**
      * @param Type $type
      */
     private function __construct(private readonly Type $type)
     {
-    }
-
-    public function init(ClassMap $classMap): void
-    {
-        $this->classMap = $classMap;
     }
 
     public function type(): Type
@@ -104,15 +98,11 @@ final class Rule
         return $this->should;
     }
 
-    public function check(RuleSetReport $ruleSetReport, ?Closure $onHit): void
+    public function check(ClassMap $classMap, ?Closure $onHit): RuleReport
     {
-        if (null === $this->classMap) {
-            throw new LogicException('You must provide a class map');
-        }
+        $ruleReport = new RuleReport($this);
 
-        $ruleReport = $ruleSetReport->add($this);
-
-        foreach ($this->classMap as $class) {
+        foreach ($classMap as $class) {
             $valueReport = $ruleReport->add($class);
 
             if ($onHit !== null) {
@@ -127,6 +117,8 @@ final class Rule
 
             $this->getShould()->evaluate($class);
         }
+
+        return $ruleReport;
     }
 
     /**

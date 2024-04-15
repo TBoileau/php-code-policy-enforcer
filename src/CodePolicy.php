@@ -6,37 +6,55 @@ namespace TBoileau\PhpCodePolicyEnforcer;
 
 use Countable;
 use IteratorAggregate;
+use TBoileau\PhpCodePolicyEnforcer\ClassMapper\ClassMap;
+use TBoileau\PhpCodePolicyEnforcer\ClassMapper\ClassMapper;
 use Traversable;
 
 /**
- * @template-implements IteratorAggregate<RuleSet>
+ * @template-implements IteratorAggregate<Rule>
  */
 final class CodePolicy implements Countable, IteratorAggregate
 {
     /**
-     * @var RuleSet[]
+     * @var Rule[]
      */
-    private array $ruleSets = [];
+    private array $rules = [];
 
-    public function add(RuleSet $ruleSet): self
+    private function __construct(private readonly ClassMap $classMap)
     {
-        $this->ruleSets[] = $ruleSet;
+    }
+
+    public static function analyze(string ...$directories): self
+    {
+        $classMap = ClassMapper::generateClassMap(...$directories);
+
+        return new self($classMap);
+    }
+
+    public function classMap(): ClassMap
+    {
+        return $this->classMap;
+    }
+
+    public function add(Rule $rule): self
+    {
+        $this->rules[] = $rule;
 
         return $this;
     }
 
     /**
-     * @return Traversable<RuleSet>
+     * @return Traversable<Rule>
      */
     public function getIterator(): Traversable
     {
-        foreach ($this->ruleSets as $ruleSet) {
-            yield $ruleSet;
+        foreach ($this->rules as $rule) {
+            yield $rule;
         }
     }
 
     public function count(): int
     {
-        return count($this->ruleSets);
+        return count($this->rules) * count($this->classMap);
     }
 }
