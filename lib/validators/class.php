@@ -5,13 +5,20 @@ declare(strict_types=1);
 namespace TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class;
 
 use Countable;
+use TBoileau\PhpCodePolicyEnforcer\Exception\ExpressionException;
+use TBoileau\PhpCodePolicyEnforcer\Expression\Expression;
 use TBoileau\PhpCodePolicyEnforcer\Reflection\ReflectionClass;
 use TBoileau\PhpCodePolicyEnforcer\Expression\ConditionalExpression;
 
+use function Symfony\Component\String\u;
+
+/**
+ * @throws ExpressionException
+ */
 function dependsOn(string ...$namespaces): ConditionalExpression
 {
     return new ConditionalExpression(
-        name: 'hasAttribute',
+        name: 'dependsOn',
         validator: static function (ReflectionClass $value) use ($namespaces): bool {
             $count = count($value->getImports());
 
@@ -30,7 +37,7 @@ function dependsOn(string ...$namespaces): ConditionalExpression
             return $count === 0;
         },
         parameters: ['namespaces' => $namespaces],
-        message: 'depends on {{ parameters.namespaces|join(", ", " and ") }}',
+        message: 'depends on {{ namespaces|quote|join(", ", " or ")|raw }}',
     );
 }
 
@@ -40,7 +47,7 @@ function hasAttribute(string $attribute): ConditionalExpression
         name: 'hasAttribute',
         validator: static fn (ReflectionClass $value): bool => count($value->getAttributes($attribute)) > 0,
         parameters: ['attribute' => $attribute],
-        message: 'has attribute {{ attribute }}',
+        message: 'has and attribute named "{{ attribute }}"',
     );
 }
 
@@ -50,17 +57,50 @@ function hasConstant(string $constant): ConditionalExpression
         name: 'hasConstant',
         validator: static fn (ReflectionClass $value): bool => $value->hasConstant($constant),
         parameters: ['constant' => $constant],
-        message: 'has constant {{ constant }}',
+        message: 'has a constant name "{{ constant }}"',
     );
 }
 
-function hasMethod(string $method): ConditionalExpression
+function hasMethod(string $method, ?Expression $expression = null): ConditionalExpression
 {
     return new ConditionalExpression(
         name: 'hasMethod',
         validator: static fn (ReflectionClass $value): bool => $value->hasMethod($method),
         parameters: ['method' => $method],
-        message: 'has method {{ method }}',
+        message: 'has a method named "{{ method }}"',
+        childExpression: $expression,
+        childValues: static fn (ReflectionClass $value): array => [$value->getMethod($method)]
+    );
+}
+
+function containsMethods(int $numberOfMethods): ConditionalExpression
+{
+    return new ConditionalExpression(
+        name: 'containsMethods',
+        validator: static fn (ReflectionClass $value): bool => count($value->getMethods()) === $numberOfMethods,
+        parameters: ['numberOfMethods' => $numberOfMethods],
+        message: 'contains "{{ numberOfMethods }}" {{ "method"|inflect(numberOfMethods) }}',
+    );
+}
+
+function containsProperties(int $numberOfProperties): ConditionalExpression
+{
+    return new ConditionalExpression(
+        name: 'containsProperties',
+        validator: static fn (ReflectionClass $value): bool => count($value->getProperties()) === $numberOfProperties,
+        parameters: ['numberOfProperties' => $numberOfProperties],
+        message: 'contains "{{ numberOfProperties }}" {{ "method"|inflect(numberOfProperties) }}',
+    );
+}
+
+function methods(?Expression $expression = null): ConditionalExpression
+{
+    return new ConditionalExpression(
+        name: 'methods',
+        validator: static fn (ReflectionClass $value): bool => true,
+        message: 'has methods',
+        childExpression: $expression,
+        childValues: static fn (ReflectionClass $value): array => $value->getMethods()
     );
 }
 
@@ -70,7 +110,7 @@ function hasProperty(string $property): ConditionalExpression
         name: 'hasProperty',
         validator: static fn (ReflectionClass $value): bool => $value->hasProperty($property),
         parameters: ['property' => $property],
-        message: 'has property {{ property }}',
+        message: 'has property "{{ property }}"',
     );
 }
 
@@ -80,7 +120,7 @@ function hasConstructor(): ConditionalExpression
         name: 'hasConstructor',
         validator: static fn (ReflectionClass $value): bool => $value->getConstructor() !== null,
         parameters: [],
-        message: 'has constructor',
+        message: 'has "constructor"',
     );
 }
 
@@ -90,7 +130,7 @@ function implementsInterface(string $interface): ConditionalExpression
         name: 'implementsInterface',
         validator: static fn (ReflectionClass $value): bool => $value->implementsInterface($interface),
         parameters: ['interface' => $interface],
-        message: 'implements interface {{ interface }}',
+        message: 'implements interface "{{ interface }}"',
     );
 }
 
@@ -99,7 +139,7 @@ function inNamespace(): ConditionalExpression
     return new ConditionalExpression(
         name: 'inNamespace',
         validator: static fn (ReflectionClass $value): bool => $value->inNamespace(),
-        message: 'in a namespace',
+        message: 'in a "namespace"',
     );
 }
 
@@ -108,7 +148,7 @@ function isAbstract(): ConditionalExpression
     return new ConditionalExpression(
         name: 'isAbstract',
         validator: static fn (ReflectionClass $value): bool => $value->isAbstract(),
-        message: 'is abstract',
+        message: 'is "abstract"',
     );
 }
 
@@ -117,7 +157,7 @@ function isAnonymous(): ConditionalExpression
     return new ConditionalExpression(
         name: 'isAnonymous',
         validator: static fn (ReflectionClass $value): bool => $value->isAnonymous(),
-        message: 'is anonymous',
+        message: 'is "anonymous"',
     );
 }
 
@@ -126,7 +166,7 @@ function isCloneable(): ConditionalExpression
     return new ConditionalExpression(
         name: 'isCloneable',
         validator: static fn (ReflectionClass $value): bool => $value->isCloneable(),
-        message: 'is cloneable',
+        message: 'is "cloneable"',
     );
 }
 
@@ -135,7 +175,7 @@ function isCountable(): ConditionalExpression
     return new ConditionalExpression(
         name: 'isCountable',
         validator: static fn (ReflectionClass $value): bool => $value->implementsInterface(Countable::class),
-        message: 'is countable',
+        message: 'is "countable"',
     );
 }
 
@@ -144,7 +184,7 @@ function isEnum(): ConditionalExpression
     return new ConditionalExpression(
         name: 'isEnum',
         validator: static fn (ReflectionClass $value): bool => $value->isEnum(),
-        message: 'is an enum',
+        message: 'is an "enum"',
     );
 }
 
@@ -153,7 +193,7 @@ function isFinal(): ConditionalExpression
     return new ConditionalExpression(
         name: 'isFinal',
         validator: static fn (ReflectionClass $value): bool => $value->isFinal(),
-        message: 'is final',
+        message: 'is "final"',
     );
 }
 
@@ -162,7 +202,7 @@ function isInterface(): ConditionalExpression
     return new ConditionalExpression(
         name: 'isInterface',
         validator: static fn (ReflectionClass $value): bool => $value->isInterface(),
-        message: 'is an interface',
+        message: 'is an "interface"',
     );
 }
 
@@ -171,7 +211,7 @@ function isInstantiable(): ConditionalExpression
     return new ConditionalExpression(
         name: 'isInstantiable',
         validator: static fn (ReflectionClass $value): bool => $value->isInstantiable(),
-        message: 'is instantiable',
+        message: 'is "instantiable"',
     );
 }
 
@@ -180,7 +220,7 @@ function isInternal(): ConditionalExpression
     return new ConditionalExpression(
         name: 'isInternal',
         validator: static fn (ReflectionClass $value): bool => $value->isInternal(),
-        message: 'is internal',
+        message: 'is "internal"',
     );
 }
 
@@ -189,7 +229,7 @@ function isInvokable(): ConditionalExpression
     return new ConditionalExpression(
         name: 'isInvokable',
         validator: static fn (ReflectionClass $value): bool => $value->hasMethod('__invoke'),
-        message: 'is invokable',
+        message: 'is "invokable"',
     );
 }
 
@@ -198,7 +238,7 @@ function isIterable(): ConditionalExpression
     return new ConditionalExpression(
         name: 'isIterable',
         validator: static fn (ReflectionClass $value): bool => $value->isIterable(),
-        message: 'is iterable',
+        message: 'is "iterable"',
     );
 }
 
@@ -207,7 +247,7 @@ function isIterateable(): ConditionalExpression
     return new ConditionalExpression(
         name: 'isIterateable',
         validator: static fn (ReflectionClass $value): bool => $value->isIterateable(),
-        message: 'is iterateable',
+        message: 'is "iterateable"',
     );
 }
 
@@ -216,7 +256,7 @@ function isReadOnly(): ConditionalExpression
     return new ConditionalExpression(
         name: 'isReadOnly',
         validator: static fn (ReflectionClass $value): bool => $value->isReadOnly(),
-        message: 'is read-only',
+        message: 'is "read-only"',
     );
 }
 
@@ -226,7 +266,7 @@ function isSubclassOf(string $class): ConditionalExpression
         name: 'isSubclassOf',
         validator: static fn (ReflectionClass $value): bool => $value->isSubclassOf($class),
         parameters: ['class' => $class],
-        message: 'is a subclass of {{ class }}',
+        message: 'is a subclass of "{{ class }}"',
     );
 }
 
@@ -235,7 +275,7 @@ function isTrait(): ConditionalExpression
     return new ConditionalExpression(
         name: 'isTrait',
         validator: static fn (ReflectionClass $value): bool => $value->isTrait(),
-        message: 'is a trait',
+        message: 'is a "trait"',
     );
 }
 
@@ -244,7 +284,7 @@ function isUserDefined(): ConditionalExpression
     return new ConditionalExpression(
         name: 'isUserDefined',
         validator: static fn (ReflectionClass $value): bool => $value->isUserDefined(),
-        message: 'is user-defined',
+        message: 'is "user-defined"',
     );
 }
 
@@ -254,17 +294,17 @@ function matchWith(string $pattern): ConditionalExpression
         name: 'matchWith',
         validator: static fn (ReflectionClass $value): bool => preg_match($pattern, $value->getName()) === 1,
         parameters: ['pattern' => $pattern],
-        message: 'match with pattern {{ pattern }}',
+        message: 'matches with pattern "{{ pattern }}"',
     );
 }
 
-function residesIn(string $namespace): ConditionalExpression
+function residesIn(string ...$namespaces): ConditionalExpression
 {
     return new ConditionalExpression(
         name: 'residesIn',
-        validator: static fn (ReflectionClass $value): bool => str_starts_with($value->getName(), $namespace),
-        parameters: ['namespace' => $namespace],
-        message: 'resides in namespace {{ namespace }}',
+        validator: static fn (ReflectionClass $value): bool => u($value->getName())->containsAny($namespaces),
+        parameters: ['namespaces' => $namespaces],
+        message: 'resides in {{ "namespace"|inflect(namespaces) }} {{ namespaces|quote|join(", ", " or ")|raw }}',
     );
 }
 
@@ -279,6 +319,6 @@ function uses(string $trait): ConditionalExpression
             )
         ) === 1,
         parameters: ['trait' => $trait],
-        message: 'uses trait {{ trait }}',
+        message: 'uses trait "{{ trait }}"',
     );
 }

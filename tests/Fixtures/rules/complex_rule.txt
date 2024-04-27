@@ -1,0 +1,16 @@
+For each of 8 classes in "/tests/Fixtures" and "/src"
+That resides in namespaces "TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures" or "TBoileau\PhpCodePolicyEnforcer\Cli"
+  and contains "5" methods
+    or is not "final"
+    or is an "enum"
+      and uses trait "TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Xyzzy"
+      and does not implement interface "TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Bar"
+Should have a method named "test"
+  and not be "abstract"
+    or not be an "interface"
+      xor have a method named "test"
+        which should contain "2" parameters
+          and have a parameter named "foo"
+          and have a parameter named "bar"
+            or have a parameter named "baz"
+Because this is a test

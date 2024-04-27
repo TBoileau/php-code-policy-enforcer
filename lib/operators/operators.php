@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace TBoileau\PhpCodePolicyEnforcer\Lib;
+namespace TBoileau\PhpCodePolicyEnforcer\Lib\Operators;
 
 use LogicException;
+use TBoileau\PhpCodePolicyEnforcer\Expression\ConditionalExpression;
 use TBoileau\PhpCodePolicyEnforcer\Expression\Expression;
 use TBoileau\PhpCodePolicyEnforcer\Expression\LogicalExpression;
 use TBoileau\PhpCodePolicyEnforcer\Expression\Operator;
@@ -47,7 +48,13 @@ function xorX(Expression ...$expressions): Expression
     return addLogicalExpression(Operator::Xor, ...$expressions);
 }
 
-function not(Expression $expression): Expression
+function not(ConditionalExpression $expression): Expression
 {
-    return addLogicalExpression(Operator::Not, $expression);
+    if (null !== $expression->getChildExpression()) {
+        throw new LogicException('You cannot negate an expression with a child expression');
+    }
+
+    $expression->setNot(true);
+
+    return $expression;
 }

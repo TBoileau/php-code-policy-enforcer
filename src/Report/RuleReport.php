@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace TBoileau\PhpCodePolicyEnforcer\Report;
 
 use ArrayAccess;
+use Closure;
 use Countable;
 use IteratorAggregate;
 use TBoileau\PhpCodePolicyEnforcer\Report\Enum\State;
@@ -17,28 +18,23 @@ use TBoileau\PhpCodePolicyEnforcer\Rule;
  */
 final class RuleReport implements Countable, IteratorAggregate, ArrayAccess
 {
-    use CollectionTrait;
+    use NestedReportTrait;
 
     /**
      * @var ValueReport[]
      */
-    protected array $children = [];
+    private array $children = [];
 
-    public function __construct(private readonly Rule $rule)
+    public function __construct(private readonly RunReport $runReport, private readonly Rule $rule, private readonly ?Closure $onHit)
     {
+        foreach ($this->runReport->codePolicy()->classMap() as $class) {
+            $this->children[] = new ValueReport($this, $class, $this->onHit);
+        }
     }
 
     public function rule(): Rule
     {
         return $this->rule;
-    }
-
-    public function add(mixed $value): ValueReport
-    {
-        $valueReport = new ValueReport($this, $value);
-        $this->children[] = $valueReport;
-
-        return $valueReport;
     }
 
     public function count(?State $state = null, ?Status $status = null): int
@@ -78,5 +74,12 @@ final class RuleReport implements Countable, IteratorAggregate, ArrayAccess
     public function has(Status $status): bool
     {
         return $status->equals($this->status());
+    }
+
+    public function run(): void
+    {
+        foreach ($this->children as $value) {
+            $value->run();
+        }
     }
 }

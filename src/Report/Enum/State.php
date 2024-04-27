@@ -8,6 +8,7 @@ enum State: string
 {
     case Ignored = '🗑️';
     case Evaluated = '⚙️';
+    case Created = '🆕';
 
     public function equals(State $state): bool
     {

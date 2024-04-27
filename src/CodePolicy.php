@@ -24,11 +24,15 @@ final class CodePolicy implements Countable, IteratorAggregate
     {
     }
 
-    public static function analyze(string ...$directories): self
+    public static function in(string ...$directories): self
     {
-        $classMap = ClassMapper::generateClassMap(...$directories);
+        $classMapper = new ClassMapper();
 
-        return new self($classMap);
+        foreach ($directories as $directory) {
+            $classMapper->add($directory);
+        }
+
+        return new self($classMapper->generate());
     }
 
     public function classMap(): ClassMap
@@ -38,7 +42,7 @@ final class CodePolicy implements Countable, IteratorAggregate
 
     public function add(Rule $rule): self
     {
-        $this->rules[] = $rule;
+        $this->rules[] = $rule->setCodePolicy($this);
 
         return $this;
     }

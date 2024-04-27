@@ -1,0 +1,4 @@
+For each of 8 classes in "/tests/Fixtures"
+That resides in namespace "TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures"
+Should have a method named "test"
+Because this is a test
