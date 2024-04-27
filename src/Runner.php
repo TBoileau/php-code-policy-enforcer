@@ -27,7 +27,8 @@ final class Runner
         $runReport = new RunReport($this->codePolicy);
 
         foreach ($this->codePolicy as $rule) {
-            $runReport->add($rule->check($this->codePolicy->classMap(), $this->onHit));
+            $ruleReport = $runReport->add($rule, $this->onHit);
+            $ruleReport->run();
         }
 
         return $runReport;

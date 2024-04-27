@@ -6,4 +6,8 @@ namespace TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures;
 
 readonly class Quux
 {
+    public function foo(int $bar): int
+    {
+        return $bar;
+    }
 }

@@ -12,16 +12,28 @@ use TBoileau\PhpCodePolicyEnforcer\Reflection\ReflectionClass;
 use Traversable;
 
 /**
- * @template-implements IteratorAggregate<ReflectionClass>
- * @template-implements ArrayAccess<class-string, ReflectionClass>
+ * @implements IteratorAggregate<ReflectionClass>
+ * @implements ArrayAccess<class-string, ReflectionClass>
  */
-final readonly class ClassMap implements Countable, IteratorAggregate, ArrayAccess
+final class ClassMap implements Countable, IteratorAggregate, ArrayAccess
 {
     /**
-     * @param array<class-string, ReflectionClass> $classes
+     * @var array<class-string, ReflectionClass>
      */
-    public function __construct(private array $classes = [])
+    private array $classes = [];
+
+    public function __construct(private readonly ClassMapper $classMapper)
     {
+    }
+
+    public function classMapper(): ClassMapper
+    {
+        return $this->classMapper;
+    }
+
+    public function add(ReflectionClass $class): void
+    {
+        $this->classes[$class->getName()] = $class;
     }
 
     public function getIterator(): Traversable
@@ -34,18 +46,23 @@ final readonly class ClassMap implements Countable, IteratorAggregate, ArrayAcce
     public function count(): int
     {
         return count($this->classes);
-    }public function offsetExists(mixed $offset): bool
+    }
+
+    public function offsetExists(mixed $offset): bool
     {
         return isset($this->classes[$offset]);
     }
+
     public function offsetGet(mixed $offset): ReflectionClass
     {
         return $this->classes[$offset];
     }
+
     public function offsetSet(mixed $offset, mixed $value): void
     {
         throw new LogicException('You cannot modify a class map.');
     }
+
     public function offsetUnset(mixed $offset): void
     {
         throw new LogicException('You cannot modify a class map.');

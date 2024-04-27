@@ -5,80 +5,93 @@ declare(strict_types=1);
 namespace TBoileau\PhpCodePolicyEnforcer\Expression;
 
 use Closure;
-use LogicException;
-use TBoileau\PhpCodePolicyEnforcer\Templating\Templating;
+use TBoileau\PhpCodePolicyEnforcer\Exception\ExpressionException;
+use TBoileau\PhpCodePolicyEnforcer\Report\Enum\Status;
+use TBoileau\PhpCodePolicyEnforcer\Report\Report;
 
 final class ConditionalExpression implements Expression
 {
-    private LogicalExpression $parent;
+    use NestedExpressionTrait;
 
-    private ?Closure $onEvaluate = null;
+    private bool $not = false;
 
     /**
+     * @param string $name
      * @param Closure(mixed): bool $validator
      * @param array<string, mixed> $parameters
+     * @param string $message
+     * @param Expression|null $childExpression
+     * @param Closure|null $childValues
+     * @throws ExpressionException
      */
     public function __construct(
         private readonly string  $name,
         private readonly Closure $validator,
         private readonly array   $parameters = [],
-        private readonly string  $message = ''
+        private readonly string  $message = '',
+        private readonly ?Expression $childExpression = null,
+        private readonly ?Closure $childValues = null
     ) {
+        if ($this->childExpression !== null) {
+            if ($this->childValues === null) {
+                throw ExpressionException::noChildValues($this);
+            }
+
+            $this->childExpression->setParent($this);
+        }
     }
 
-    public function onEvaluate(Closure $onEvaluate): void
+    public function evaluate(Report $report): bool
     {
-        $this->onEvaluate = $onEvaluate;
-    }
+        $result = !$this->not === ($this->validator)($report->value());
 
-    public function attachTo(LogicalExpression $parent): Expression
-    {
-        $this->parent = $parent;
+        $report->setStatus(Status::fromResult($result));
 
-        return $this;
-    }
+        if ($result && $this->childExpression !== null && $this->childValues !== null) {
+            $childValues = ($this->childValues)($report->value());
 
-    public function name(): string
-    {
-        return $this->name;
-    }
+            foreach ($childValues as $childValue) {
+                $childReport = new Report($childValue, $this->childExpression);
 
-    public function evaluate(mixed $value): bool
-    {
-        $result = ($this->validator)($value);
+                $result = $result && $this->childExpression->evaluate($childReport);
 
-        if (null !== $this->onEvaluate) {
-            $this->onEvaluate->call($this, $result);
+                $report->add($childReport);
+            }
         }
 
         return $result;
     }
 
+    public function isNot(): bool
+    {
+        return $this->not;
+    }
+
+    public function setNot(bool $not): void
+    {
+        $this->not = $not;
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function getMessage(): string
+    {
+        return $this->message;
+    }
+
     /**
      * @return array<string, mixed>
      */
-    public function parameters(): array
+    public function getParameters(): array
     {
         return $this->parameters;
     }
 
-    public function parent(): LogicalExpression
+    public function getChildExpression(): ?Expression
     {
-        return $this->parent;
-    }
-
-    public function isRoot(): bool
-    {
-        return false;
-    }
-
-    public function level(): int
-    {
-        return $this->parent->level() + 1;
-    }
-
-    public function message(Templating $templating): string
-    {
-        return $templating->render($this->message, $this->parameters);
+        return $this->childExpression;
     }
 }

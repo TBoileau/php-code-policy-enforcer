@@ -8,6 +8,7 @@ use ArrayAccess;
 use Countable;
 use IteratorAggregate;
 use TBoileau\PhpCodePolicyEnforcer\Expression\Expression;
+use TBoileau\PhpCodePolicyEnforcer\Report\Enum\State;
 use TBoileau\PhpCodePolicyEnforcer\Report\Enum\Status;
 use TBoileau\PhpCodePolicyEnforcer\Report\Enum\Type;
 
@@ -17,22 +18,37 @@ use TBoileau\PhpCodePolicyEnforcer\Report\Enum\Type;
  */
 final class Report implements Countable, IteratorAggregate, ArrayAccess
 {
-    use CollectionTrait;
+    use NestedReportTrait;
 
     /**
      * @var Report[]
      */
-    protected array $children = [];
+    private array $children = [];
 
-    public function __construct(
-        private readonly Expression $expression,
-        private readonly Status $status
-    ) {
+    private Status $status = Status::Created;
+
+    public function __construct(private readonly mixed $value, private readonly Expression $expression)
+    {
+    }
+
+    public function add(Report $report): void
+    {
+        $this->children[] = $report;
     }
 
     public function expression(): Expression
     {
         return $this->expression;
+    }
+
+    public function value(): mixed
+    {
+        return $this->value;
+    }
+
+    public function type(): Type
+    {
+        return Type::from($this->expression::class);
     }
 
     public function status(): Status
@@ -84,8 +100,8 @@ final class Report implements Countable, IteratorAggregate, ArrayAccess
         return $reports;
     }
 
-    public function add(Report $report): void
+    public function setStatus(Status $status): void
     {
-        $this->children[] = $report;
+        $this->status = $status;
     }
 }

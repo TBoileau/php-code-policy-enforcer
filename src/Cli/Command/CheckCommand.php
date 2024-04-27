@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace TBoileau\PhpCodePolicyEnforcer\Cli\Command;
 
+use InvalidArgumentException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -11,7 +12,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use TBoileau\PhpCodePolicyEnforcer\CodePolicy;
 use TBoileau\PhpCodePolicyEnforcer\Formatter\ConsoleFormatter;
-use TBoileau\PhpCodePolicyEnforcer\Report\Enum\Status;
 use TBoileau\PhpCodePolicyEnforcer\Runner;
 
 class CheckCommand extends Command
@@ -33,6 +33,13 @@ class CheckCommand extends Command
                 'File containing configs, such as rules to be matched',
                 'php-code-policy-enforcer.php'
             )
+            ->addOption(
+                'format',
+                'f',
+                InputOption::VALUE_OPTIONAL,
+                'Format to use for output. Default is text.',
+                'text'
+            )
         ;
     }
 
@@ -40,6 +47,9 @@ class CheckCommand extends Command
     {
         /** @var string $codePolicyFile */
         $codePolicyFile = $input->getOption('config');
+
+        /** @var string $format */
+        $format = $input->getOption('format');
 
         if (!file_exists($codePolicyFile)) {
             $output->writeln(sprintf('<error>Config file not found: %s</error>', $codePolicyFile));
@@ -63,7 +73,10 @@ class CheckCommand extends Command
 
         $io->progressFinish();
 
-        $formatter = new ConsoleFormatter($input, $output);
+        $formatter = match ($format) {
+            'text' => new ConsoleFormatter($input, $output),
+            default => throw new InvalidArgumentException(sprintf('Unknown format: %s', $format))
+        };
 
         $formatter->format($report);
 
