@@ -1,0 +1,7 @@
+{% set classMap = rule.codePolicy.classMap %}
+{% set directories = classMap.classMapper.directories %}
+{% apply sanitize|raw %}
+For each of {{ classMap|length }} {{ "class"|inflect(classMap) }} in {{ directories|quote|join(", ", " and ")|raw }}
+That {{ include('expressions/logical.twig', {expression: rule.filter, infinitive: false}) }}
+Should {{ include('expressions/logical.twig', {expression: rule.checker, infinitive: true}) }}
+Because {{ rule.reason }}{% endapply %}

@@ -8,7 +8,6 @@ enum Operator: string
 {
     case And = 'and';
     case Or = 'or';
-    case Not = 'not';
     case Xor = 'xor';
 
     public function equals(Operator $operator): bool

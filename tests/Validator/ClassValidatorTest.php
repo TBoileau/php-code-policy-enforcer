@@ -14,13 +14,14 @@ use stdClass;
 use TBoileau\PhpCodePolicyEnforcer\ClassMapper\ClassMap;
 use TBoileau\PhpCodePolicyEnforcer\ClassMapper\ClassMapper;
 use TBoileau\PhpCodePolicyEnforcer\Expression\ConditionalExpression;
+use TBoileau\PhpCodePolicyEnforcer\Report\Report;
 use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Bar;
 use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Baz;
 use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Corge;
 use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Foo;
 use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Grault\Garply;
+use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Grault\Qux;
 use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Quux;
-use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Qux;
 use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Xyzzy;
 
 use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\dependsOn;
@@ -57,7 +58,7 @@ final class ClassValidatorTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->classMap = ClassMapper::generateClassMap(__DIR__ . '/../Fixtures');
+        $this->classMap = (new ClassMapper())->add(__DIR__ . '/../Fixtures')->generate();
     }
 
     #[Test]
@@ -69,13 +70,13 @@ final class ClassValidatorTest extends TestCase
         }
 
         if (null !== $succeededExpression) {
-            $succeededExpression->onEvaluate(fn (bool $result) => null);
-            self::assertTrue($succeededExpression->evaluate($this->classMap[$class]));
+            $report = new Report($this->classMap[$class], $succeededExpression);
+            self::assertTrue($succeededExpression->evaluate($report));
         }
 
         if (null !== $failedExpression) {
-            $failedExpression->onEvaluate(fn (bool $result) => null);
-            self::assertFalse($failedExpression->evaluate($this->classMap[$class]));
+            $report = new Report($this->classMap[$class], $failedExpression);
+            self::assertFalse($failedExpression->evaluate($report));
         }
     }
 
@@ -84,7 +85,7 @@ final class ClassValidatorTest extends TestCase
      */
     public static function provideValidators(): Generator
     {
-        yield 'dependsOn' => [Foo::class, dependsOn(Garply::class, '\\'), dependsOn(Garply::class)];
+        yield 'dependsOn' => [Foo::class, dependsOn('TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Grault', '\\'), dependsOn(Garply::class)];
         yield 'hasAttribute' => [Foo::class, hasAttribute(Attribute::class), hasAttribute(Garply::class)];
         yield 'hasConstant' => [Foo::class, hasConstant('WALDO'), hasConstant('FAIL')];
         yield 'hasMethod' => [Foo::class, hasMethod('fred'), hasMethod('fail')];

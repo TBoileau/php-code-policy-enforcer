@@ -4,28 +4,22 @@ declare(strict_types=1);
 
 namespace TBoileau\PhpCodePolicyEnforcer\Expression;
 
-use Closure;
-use TBoileau\PhpCodePolicyEnforcer\Templating\Templating;
+use TBoileau\PhpCodePolicyEnforcer\Report\Report;
 
 interface Expression
 {
-    /**
-     * @param Closure(bool $result): void $onEvaluate
-     */
-    public function onEvaluate(Closure $onEvaluate): void;
+    public function evaluate(Report $report): bool;
 
-    public function evaluate(mixed $value): bool;
+    public function setParent(Expression $parent): Expression;
 
-    public function attachTo(LogicalExpression $parent): Expression;
+    public function getParent(): ?Expression;
 
-    public function parent(): ?LogicalExpression;
+    public function getLevel(): int;
 
-    public function isRoot(): bool;
-
-    public function level(): int;
+    public function isChildExpression(): bool;
 
     /**
-     * @return string[]|string
+     * @return Expression[]
      */
-    public function message(Templating $templating): array | string;
+    public function getTrace(): array;
 }
