@@ -7,9 +7,8 @@ namespace TBoileau\PhpCodePolicyEnforcer\Expression;
 use ArrayAccess;
 use Closure;
 use IteratorAggregate;
-use LogicException;
 use TBoileau\PhpCodePolicyEnforcer\Evaluator\Evaluator;
-use TBoileau\PhpCodePolicyEnforcer\Templating\Templating;
+use TBoileau\PhpCodePolicyEnforcer\Report\Report;
 use Traversable;
 
 use function Symfony\Component\String\u;
@@ -20,71 +19,35 @@ use function Symfony\Component\String\u;
  */
 final class LogicalExpression implements Expression, IteratorAggregate, ArrayAccess
 {
+    use NestedExpressionTrait;
+
     /**
      * @var Expression[]
      */
     private array $children = [];
 
-    private ?LogicalExpression $parent = null;
-
-    private ?Closure $onEvaluate = null;
-
     public function __construct(private readonly Operator $operator = Operator::And)
     {
     }
 
-    public function attachTo(LogicalExpression $parent): self
+    public function is(Operator $operator): bool
     {
-        $this->parent = $parent;
-
-        return $this;
+        return $operator->equals($this->operator);
     }
 
-    public function operator(): Operator
+    public function evaluate(Report $report): bool
+    {
+        return Evaluator::evaluate($this, $report);
+    }
+
+    public function getOperator(): Operator
     {
         return $this->operator;
     }
 
-    public function parent(): ?LogicalExpression
-    {
-        return $this->parent;
-    }
-
-    public function isRoot(): bool
-    {
-        return $this->level() === 0;
-    }
-
-    public function level(): int
-    {
-        return null === $this->parent ? 0 : $this->parent->level() + 1;
-    }
-
     public function add(Expression $expression): void
     {
-        $this->children[] = $expression->attachTo($this);
-    }
-
-    public function onEvaluate(Closure $onEvaluate): void
-    {
-        $this->onEvaluate = $onEvaluate;
-
-        foreach ($this->children as $child) {
-            $child->onEvaluate($onEvaluate);
-        }
-    }
-
-    public function evaluate(mixed $value): bool
-    {
-        $result = Evaluator::evaluate($this, $value);
-
-        if (null === $this->onEvaluate) {
-            throw new LogicException('onEvaluate must be set');
-        }
-
-        $this->onEvaluate->call($this, $result);
-
-        return $result;
+        $this->children[] = $expression->setParent($this);
     }
 
     /**
@@ -125,57 +88,5 @@ final class LogicalExpression implements Expression, IteratorAggregate, ArrayAcc
     public function offsetUnset(mixed $offset): void
     {
         unset($this->children[$offset]);
-    }
-
-    public function message(Templating $templating): array | string
-    {
-        if (count($this->children) === 1) {
-            return $this->children[0]->message($templating);
-        }
-
-        if ($this->operator === Operator::Not) {
-            $messages = $this->children[0]->message($templating);
-
-            if (is_string($messages)) {
-                return $templating->render('not {{ message }}', ['message' => $messages]);
-            }
-
-            $messages[0] = $templating->render('not {{ message }}', ['message' => $messages[0]]);
-
-            return $messages;
-        }
-
-        $messages = [];
-
-        foreach ($this->children as $i => $child) {
-            $childMessages = $child->message($templating);
-            $indentation = $i === 0 ? '' : u('')->padStart($child->level() * 2, ' ');
-            $operator = $i === 0 ? '' : sprintf('%s ', $this->operator->value);
-
-            if (is_string($childMessages)) {
-                $messages[] = $templating->render(
-                    '{{ indentation }}{{ operator }}{{ message }}',
-                    [
-                        'indentation' => $indentation,
-                        'message' => $childMessages,
-                        'operator' => $operator
-                    ]
-                );
-                continue;
-            }
-
-            foreach ($childMessages as $k => $childMessage) {
-                $messages[] = $templating->render(
-                    '{{ indentation }} {{ operator }} {{ message }}',
-                    [
-                        'indentation' => $indentation,
-                        'message' => $childMessage,
-                        'operator' => $this->operator->value
-                    ]
-                );
-            }
-        }
-
-        return $messages;
     }
 }

@@ -31,44 +31,37 @@ final readonly class ConsoleFormatter implements Formatter
     {
         $style = new SymfonyStyle($this->input, $this->output);
 
-        $templating = new TwigTemplating();
+        $templating = new TwigTemplating('text');
 
         foreach ($report as $ruleReport) {
-            $style->block($ruleReport->rule()->reason(), 'RULE', 'fg=black;bg=cyan;options=bold', ' ', true);
+            $style->block($ruleReport->rule()->getReason(), 'RULE', 'fg=black;bg=cyan;options=bold', ' ', true);
 
             $style->section('Description');
 
             $style->writeln(
                 sprintf(
                     "<fg=blue>%s</>",
-                    u(implode("\n", $ruleReport->rule()->message($templating)))
-                        ->replaceMatches(
-                            '/(?<instruction>For each|That|Should|and |or |xor |not )/',
-                            static fn (array $matches): string => sprintf("<fg=cyan;options=bold>%s</>", $matches['instruction'])
-                        )
+                    $this->formatText($templating->render('rule.twig', ['rule' => $ruleReport->rule()]))
                 )
             );
 
             $style->newLine();
 
+            $style->section('Checks');
+
             $table = new Table($this->output);
             $table->setStyle('box');
-            $table->setHeaders([
-                u($ruleReport->rule()->type()->label())->title()->toString(),
-                'Status'
-            ]);
+            $table->setHeaders(['Class', 'Status']);
 
             foreach ($ruleReport->filter(State::Evaluated) as $valueReport) {
                 $table->addRow([
-                    $ruleReport->rule()->type()->str($valueReport->value()),
+                    $valueReport->value()->getName(),
                     new TableCell(
                         $valueReport->status()->value,
                         ['style' => new TableCellStyle(['align' => 'center'])]
                     )
                 ]);
             }
-
-            $style->section('Checks');
 
             $table->render();
 
@@ -79,27 +72,48 @@ final readonly class ConsoleFormatter implements Formatter
             if (count($violations) > 0) {
                 $style->section('Violations');
 
+                $maxWidth = max(...array_map(fn ($value) => strlen($value->value()->getName()), $violations));
+
                 foreach ($violations as $valueReport) {
                     $table = new Table($this->output);
                     $table->setStyle('box');
                     $table->setHeaders([
-                        [new TableCell($ruleReport->rule()->type()->str($valueReport->value()), ['colspan' => 2])],
+                        [new TableCell($valueReport->value()->getName(), ['colspan' => 2])],
                         ['Validator', 'Status']
                     ]);
-                    $table->setRows(array_map(
-                        static fn (Report $report): array => [
-                            $report->expression()->message($templating),
-                            $report->status()->value,
-                        ],
-                        $valueReport->should()->filter(Type::Conditional),
-                    ));
+
+                    $failedReports = $valueReport->should()->filter(type: Type::Conditional, status: Status::Failed);
+
+                    foreach ($failedReports as $failedReport) {
+                        $message = $this->formatText(
+                            $templating->render(
+                                'failed_report.twig',
+                                [
+                                    'expression' => $failedReport->expression(),
+                                    'infinitive' => false,
+                                    'nested' => false,
+                                ]
+                            )
+                        );
+
+                        $table->addRow([
+                            $message,
+                            new TableCell(
+                                $failedReport->status()->value,
+                                ['style' => new TableCellStyle(['align' => 'center'])]
+                            )
+                        ]);
+                    }
+
+                    $table->setColumnWidth(0, $maxWidth - 6);
+                    $table->setColumnMaxWidth(1, 6);
                     $table->render();
-                    $style->newLine();
                 }
             }
 
-            $style->section('Reports');
+            $style->newLine();
 
+            $style->section('Reports');
 
             $style->definitionList(
                 ['Parsed' => $ruleReport->count()],
@@ -117,5 +131,20 @@ final readonly class ConsoleFormatter implements Formatter
 
             $style->newLine();
         }
+    }
+
+    private function formatText(string $text): string
+    {
+        return u($text)
+            ->replaceMatches(
+                '/(?<instruction>For each of |That |Should |which should |Because |  and |  or |  xor |  not )/',
+                static fn (array $matches): string => sprintf("<fg=green;options=bold>%s</>", $matches['instruction'])
+            )
+            ->replaceMatches(
+                '/"(?<values>[^"]*)"/',
+                static fn (array $matches): string => sprintf("<fg=yellow;options=bold>%s</>", $matches['values'])
+            )
+            ->trim("\n")
+            ->toString();
     }
 }

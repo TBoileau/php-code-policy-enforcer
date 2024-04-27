@@ -8,6 +8,7 @@ enum Status: string
 {
     case Succeeded = '✅';
     case Failed = '❌';
+    case Created = '🆕';
 
     public function equals(Status $status): bool
     {

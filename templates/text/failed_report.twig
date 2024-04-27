@@ -1,0 +1,9 @@
+{% apply sanitize|raw %}
+{% if expression.isChildExpression %}
+{% for child in expression.trace %}
+{{ not loop.first ? 'which should ' : 'Should ' }}{{ include(template_from_string(child.message), child.parameters)|conditional(child, true)|raw }}
+{% endfor %}
+{% else %}
+Should {{ include(template_from_string(expression.message), expression.parameters)|conditional(expression, true)|raw }}
+{% endif %}
+{% endapply %}

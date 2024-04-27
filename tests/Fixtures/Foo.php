@@ -7,14 +7,14 @@ namespace TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures;
 use Attribute;
 use Countable;
 use IteratorAggregate;
-use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Grault\Garply;
+use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Grault\{Garply, Qux as Q};
 use Traversable;
 
 /**
  * @implements IteratorAggregate<int>
  */
 #[Attribute]
-final class Foo extends Qux implements Bar, Garply, Countable, IteratorAggregate
+final class Foo extends Q implements Bar, Garply, Countable, IteratorAggregate
 {
     use Corge;
 
@@ -31,7 +31,7 @@ final class Foo extends Qux implements Bar, Garply, Countable, IteratorAggregate
         return 1;
     }
 
-    public function __invoke(): void
+    public function __invoke(int $bar): void
     {
     }
 

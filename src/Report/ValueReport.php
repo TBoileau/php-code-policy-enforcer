@@ -4,48 +4,39 @@ declare(strict_types=1);
 
 namespace TBoileau\PhpCodePolicyEnforcer\Report;
 
-use LogicException;
-use TBoileau\PhpCodePolicyEnforcer\Expression\ConditionalExpression;
-use TBoileau\PhpCodePolicyEnforcer\Expression\Expression;
+use Closure;
+use TBoileau\PhpCodePolicyEnforcer\Exception\ReportException;
+use TBoileau\PhpCodePolicyEnforcer\Reflection\ReflectionClass;
 use TBoileau\PhpCodePolicyEnforcer\Report\Enum\State;
 use TBoileau\PhpCodePolicyEnforcer\Report\Enum\Status;
 
 final class ValueReport
 {
-    private ?Report $that = null;
+    private Report $that;
 
-    private ?Report $should = null;
+    private Report $should;
 
     public function __construct(
         private readonly RuleReport $ruleReport,
-        private readonly mixed $value,
+        private readonly ReflectionClass      $value,
+        private readonly ?Closure   $onHit
     ) {
-        $this->setOnEvaluate($this->that, $this->ruleReport->rule()->getThat());
-        $this->setOnEvaluate($this->should, $this->ruleReport->rule()->getShould());
     }
 
-    public function value(): mixed
+    public function value(): ReflectionClass
     {
         return $this->value;
     }
 
     public function that(): Report
     {
-        if ($this->that === null) {
-            throw new LogicException('You cannot retrieve the filter (that) report before setting up by calling "filter" method.');
-        }
-
         return $this->that;
     }
 
     public function should(): Report
     {
         if (!$this->that()->has(Status::Succeeded)) {
-            throw new LogicException('You cannot retrieve the valuation report because this value has been ignored.');
-        }
-
-        if ($this->should === null) {
-            throw new LogicException('You cannot retrieve the evaluation (should) report before setting up by calling "evaluate" method.');
+            throw ReportException::valueCannotBeEvaluated($this);
         }
 
         return $this->should;
@@ -72,32 +63,24 @@ final class ValueReport
             return $this->should()->status();
         }
 
-        throw new LogicException('You cannot retrieve the report status because this value has been ignored.');
+        throw ReportException::valueCannotBeEvaluated($this);
     }
 
-    private function setOnEvaluate(?Report &$report, Expression $expression): void
+    public function run(): void
     {
-        $tempReports = [];
+        $this->that = new Report($this->value, $this->ruleReport->rule()->getFilter());
 
-        $expression->onEvaluate(function (bool $result) use (&$tempReports, &$report): void {
-            /** @var Expression $this */
-            $parent = new Report($this, Status::fromResult($result));
+        $this->ruleReport->rule()->getFilter()->evaluate($this->that);
 
-            if ($this instanceof ConditionalExpression) {
-                $tempReports[] = $parent;
-                return;
-            }
+        if ($this->onHit !== null) {
+            ($this->onHit)($this);
+        }
+        if ($this->state()->equals(State::Ignored)) {
+            return;
+        }
 
-            foreach ($tempReports as $tempReport) {
-                $parent->add($tempReport);
-            }
+        $this->should = new Report($this->value, $this->ruleReport->rule()->getChecker());
 
-            if ($this->isRoot()) {
-                $report = $parent;
-                return;
-            }
-
-            $tempReports = [$parent];
-        });
+        $this->ruleReport->rule()->getChecker()->evaluate($this->should);
     }
 }

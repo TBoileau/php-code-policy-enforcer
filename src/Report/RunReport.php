@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace TBoileau\PhpCodePolicyEnforcer\Report;
 
 use ArrayAccess;
+use Closure;
 use Countable;
 use IteratorAggregate;
 use TBoileau\PhpCodePolicyEnforcer\CodePolicy;
 use TBoileau\PhpCodePolicyEnforcer\Report\Enum\Status;
+use TBoileau\PhpCodePolicyEnforcer\Rule;
 
 /**
  * @implements IteratorAggregate<RuleReport>
@@ -16,12 +18,12 @@ use TBoileau\PhpCodePolicyEnforcer\Report\Enum\Status;
  */
 final class RunReport implements Countable, IteratorAggregate, ArrayAccess
 {
-    use CollectionTrait;
+    use NestedReportTrait;
 
     /**
      * @var RuleReport[]
      */
-    protected array $children = [];
+    private array $children = [];
 
     public function __construct(private readonly CodePolicy $codePolicy)
     {
@@ -32,9 +34,11 @@ final class RunReport implements Countable, IteratorAggregate, ArrayAccess
         return $this->codePolicy;
     }
 
-    public function add(RuleReport $ruleReport): void
+    public function add(Rule $rule, ?Closure $onHit): RuleReport
     {
+        $ruleReport = new RuleReport($this, $rule, $onHit);
         $this->children[] = $ruleReport;
+        return $ruleReport;
     }
 
     public function hasSucceeded(): bool
@@ -46,5 +50,10 @@ final class RunReport implements Countable, IteratorAggregate, ArrayAccess
         }
 
         return true;
+    }
+
+    public function count(): int
+    {
+        return count($this->codePolicy);
     }
 }

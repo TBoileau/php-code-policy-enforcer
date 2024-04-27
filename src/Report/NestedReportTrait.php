@@ -6,7 +6,7 @@ namespace TBoileau\PhpCodePolicyEnforcer\Report;
 
 use Traversable;
 
-trait CollectionTrait
+trait NestedReportTrait
 {
     public function getIterator(): Traversable
     {
