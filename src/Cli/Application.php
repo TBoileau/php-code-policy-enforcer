@@ -11,7 +11,7 @@ final class Application extends BaseApplication
 {
     public function __construct()
     {
-        parent::__construct('PHP Code Policy Enforcer', '0.2.0');
+        parent::__construct('PHP Code Policy Enforcer', '0.2.1');
         $this->add(new CheckCommand());
     }
 }
