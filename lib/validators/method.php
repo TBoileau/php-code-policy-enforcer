@@ -4,20 +4,27 @@ declare(strict_types=1);
 
 namespace TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Method;
 
+use LogicException;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
-use ReflectionUnionType;
 use TBoileau\PhpCodePolicyEnforcer\Expression\ConditionalExpression;
 use TBoileau\PhpCodePolicyEnforcer\Expression\Expression;
-use TBoileau\PhpCodePolicyEnforcer\Reflection\ReflectionClass;
 
-function containsParameters(int $numberOfParameters): ConditionalExpression
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Operators\Comparison\equalTo;
+
+function containsParameters(int|array $comparison): ConditionalExpression
 {
+    if (is_int($comparison)) {
+        $comparison = equalTo($comparison);
+    }
+
+    ['expectedValue' => $expectedValue, 'callback' => $callback] = $comparison;
+
     return new ConditionalExpression(
         name: 'containsParameters',
-        validator: static fn (ReflectionMethod $value): bool => count($value->getParameters()) === $numberOfParameters,
-        parameters: ['numberOfParameters' => $numberOfParameters],
+        validator: static fn (ReflectionMethod $value): bool => $callback(count($value->getParameters())),
+        parameters: ['numberOfParameters' => $expectedValue],
         message: 'contains "{{ numberOfParameters }}" {{ "parameter"|inflect(numberOfParameters) }}',
     );
 }
