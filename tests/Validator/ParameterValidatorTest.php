@@ -15,8 +15,8 @@ use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Foo;
 
 use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Quux;
 
-use function TBoileau\PhpCodePolicyEnforcer\Lib\Operators\andX;
-use function TBoileau\PhpCodePolicyEnforcer\Lib\Operators\not;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Operators\Logical\andX;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Operators\Logical\not;
 use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\isReadOnly;
 use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Parameter\isOptional;
 use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Parameter\isPassedByReference;
@@ -71,7 +71,7 @@ final class ParameterValidatorTest extends TestCase
     }
 
     /**
-     * @return Generator<string, array{class-string, string, ?ConditionalExpression, ?ConditionalExpression}>
+     * @return Generator<string, array{class-string, string, string, ?ConditionalExpression, ?ConditionalExpression}>
      */
     public static function provideValidators(): Generator
     {

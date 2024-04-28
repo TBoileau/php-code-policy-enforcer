@@ -4,30 +4,47 @@ declare(strict_types=1);
 
 namespace TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class;
 
+use Closure;
 use Countable;
+use LogicException;
+use ReflectionNamedType;
+use ReflectionParameter;
 use TBoileau\PhpCodePolicyEnforcer\Exception\ExpressionException;
 use TBoileau\PhpCodePolicyEnforcer\Expression\Expression;
 use TBoileau\PhpCodePolicyEnforcer\Reflection\ReflectionClass;
 use TBoileau\PhpCodePolicyEnforcer\Expression\ConditionalExpression;
 
 use function Symfony\Component\String\u;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Operators\Comparison\equalTo;
 
-function containsMethods(int $numberOfMethods): ConditionalExpression
+function containsMethods(int|array $comparison): ConditionalExpression
 {
+    if (is_int($comparison)) {
+        $comparison = equalTo($comparison);
+    }
+
+    ['expectedValue' => $expectedValue, 'callback' => $callback] = $comparison;
+
     return new ConditionalExpression(
         name: 'containsMethods',
-        validator: static fn (ReflectionClass $value): bool => count($value->getMethods()) === $numberOfMethods,
-        parameters: ['numberOfMethods' => $numberOfMethods],
+        validator: static fn (ReflectionClass $value): bool => $callback(count($value->getMethods())),
+        parameters: ['numberOfMethods' => $expectedValue],
         message: 'contains "{{ numberOfMethods }}" {{ "method"|inflect(numberOfMethods) }}',
     );
 }
 
-function containsProperties(int $numberOfProperties): ConditionalExpression
+function containsProperties(int|array $comparison): ConditionalExpression
 {
+    if (is_int($comparison)) {
+        $comparison = equalTo($comparison);
+    }
+
+    ['expectedValue' => $expectedValue, 'callback' => $callback] = $comparison;
+
     return new ConditionalExpression(
         name: 'containsProperties',
-        validator: static fn (ReflectionClass $value): bool => count($value->getProperties()) === $numberOfProperties,
-        parameters: ['numberOfProperties' => $numberOfProperties],
+        validator: static fn (ReflectionClass $value): bool => $callback(count($value->getProperties())),
+        parameters: ['numberOfProperties' => $expectedValue],
         message: 'contains "{{ numberOfProperties }}" {{ "method"|inflect(numberOfProperties) }}',
     );
 }

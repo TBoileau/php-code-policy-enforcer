@@ -13,10 +13,10 @@ use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Bar;
 use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Xyzzy;
 
 use function TBoileau\PhpCodePolicyEnforcer\Lib\Helpers\that;
-use function TBoileau\PhpCodePolicyEnforcer\Lib\Operators\andX;
-use function TBoileau\PhpCodePolicyEnforcer\Lib\Operators\not;
-use function TBoileau\PhpCodePolicyEnforcer\Lib\Operators\orX;
-use function TBoileau\PhpCodePolicyEnforcer\Lib\Operators\xorX;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Operators\Logical\andX;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Operators\Logical\not;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Operators\Logical\orX;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Operators\Logical\xorX;
 use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\containsMethods;
 use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\hasMethod;
 use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\implementsInterface;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TBoileau\PhpCodePolicyEnforcer\Lib\Operators;
+namespace TBoileau\PhpCodePolicyEnforcer\Lib\Operators\Logical;
 
 use LogicException;
 use TBoileau\PhpCodePolicyEnforcer\Expression\ConditionalExpression;
