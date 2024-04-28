@@ -12,6 +12,26 @@ use TBoileau\PhpCodePolicyEnforcer\Expression\ConditionalExpression;
 
 use function Symfony\Component\String\u;
 
+function containsMethods(int $numberOfMethods): ConditionalExpression
+{
+    return new ConditionalExpression(
+        name: 'containsMethods',
+        validator: static fn (ReflectionClass $value): bool => count($value->getMethods()) === $numberOfMethods,
+        parameters: ['numberOfMethods' => $numberOfMethods],
+        message: 'contains "{{ numberOfMethods }}" {{ "method"|inflect(numberOfMethods) }}',
+    );
+}
+
+function containsProperties(int $numberOfProperties): ConditionalExpression
+{
+    return new ConditionalExpression(
+        name: 'containsProperties',
+        validator: static fn (ReflectionClass $value): bool => count($value->getProperties()) === $numberOfProperties,
+        parameters: ['numberOfProperties' => $numberOfProperties],
+        message: 'contains "{{ numberOfProperties }}" {{ "method"|inflect(numberOfProperties) }}',
+    );
+}
+
 /**
  * @throws ExpressionException
  */
@@ -38,6 +58,28 @@ function dependsOn(string ...$namespaces): ConditionalExpression
         },
         parameters: ['namespaces' => $namespaces],
         message: 'depends on {{ namespaces|quote|join(", ", " or ")|raw }}',
+    );
+}
+
+function methods(?Expression $expression = null): ConditionalExpression
+{
+    return new ConditionalExpression(
+        name: 'methods',
+        validator: static fn (ReflectionClass $value): bool => true,
+        message: 'has methods',
+        childExpression: $expression,
+        childValues: static fn (ReflectionClass $value): array => $value->getMethods()
+    );
+}
+
+function properties(?Expression $expression = null): ConditionalExpression
+{
+    return new ConditionalExpression(
+        name: 'properties',
+        validator: static fn (ReflectionClass $value): bool => true,
+        message: 'has properties',
+        childExpression: $expression,
+        childValues: static fn (ReflectionClass $value): array => $value->getProperties()
     );
 }
 
@@ -69,58 +111,37 @@ function hasMethod(string $method, ?Expression $expression = null): ConditionalE
         parameters: ['method' => $method],
         message: 'has a method named "{{ method }}"',
         childExpression: $expression,
-        childValues: static fn (ReflectionClass $value): array => [$value->getMethod($method)]
+        childValues: static fn (ReflectionClass $value): array => $value->hasMethod($method)
+            ? [$value->getMethod($method)]
+            : []
     );
 }
 
-function containsMethods(int $numberOfMethods): ConditionalExpression
-{
-    return new ConditionalExpression(
-        name: 'containsMethods',
-        validator: static fn (ReflectionClass $value): bool => count($value->getMethods()) === $numberOfMethods,
-        parameters: ['numberOfMethods' => $numberOfMethods],
-        message: 'contains "{{ numberOfMethods }}" {{ "method"|inflect(numberOfMethods) }}',
-    );
-}
-
-function containsProperties(int $numberOfProperties): ConditionalExpression
-{
-    return new ConditionalExpression(
-        name: 'containsProperties',
-        validator: static fn (ReflectionClass $value): bool => count($value->getProperties()) === $numberOfProperties,
-        parameters: ['numberOfProperties' => $numberOfProperties],
-        message: 'contains "{{ numberOfProperties }}" {{ "method"|inflect(numberOfProperties) }}',
-    );
-}
-
-function methods(?Expression $expression = null): ConditionalExpression
-{
-    return new ConditionalExpression(
-        name: 'methods',
-        validator: static fn (ReflectionClass $value): bool => true,
-        message: 'has methods',
-        childExpression: $expression,
-        childValues: static fn (ReflectionClass $value): array => $value->getMethods()
-    );
-}
-
-function hasProperty(string $property): ConditionalExpression
+function hasProperty(string $property, ?Expression $expression = null): ConditionalExpression
 {
     return new ConditionalExpression(
         name: 'hasProperty',
         validator: static fn (ReflectionClass $value): bool => $value->hasProperty($property),
         parameters: ['property' => $property],
         message: 'has property "{{ property }}"',
+        childExpression: $expression,
+        childValues: static fn (ReflectionClass $value): array => $value->hasProperty($property)
+            ? [$value->getProperty($property)]
+            : []
     );
 }
 
-function hasConstructor(): ConditionalExpression
+function hasConstructor(?Expression $expression = null): ConditionalExpression
 {
     return new ConditionalExpression(
         name: 'hasConstructor',
         validator: static fn (ReflectionClass $value): bool => $value->getConstructor() !== null,
         parameters: [],
         message: 'has "constructor"',
+        childExpression: $expression,
+        childValues: static fn (ReflectionClass $value): array => $value->getConstructor() !== null
+            ? [$value->getConstructor()]
+            : []
     );
 }
 
