@@ -36,7 +36,8 @@
       "TBoileau\\PhpCodePolicyEnforcer\\": "src/"
     },
     "files": [
-      "lib/operators/operators.php",
+      "lib/operators/comparison.php",
+      "lib/operators/logical.php",
       "lib/validators/class.php",
       "lib/validators/method.php",
       "lib/validators/property.php",
