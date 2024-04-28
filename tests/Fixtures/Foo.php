@@ -22,7 +22,7 @@ final class Foo extends Q implements Bar, Garply, Countable, IteratorAggregate
 
     public string $plugh = 'plugh';
 
-    public function fred(): void
+    public function fred(Quux $quux): void
     {
     }
 

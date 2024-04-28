@@ -78,7 +78,16 @@ final readonly class ConsoleFormatter implements Formatter
                     $table = new Table($this->output);
                     $table->setStyle('box');
                     $table->setHeaders([
-                        [new TableCell($valueReport->value()->getName(), ['colspan' => 2])],
+                        [
+                            new TableCell(
+                                $valueReport->value()->getName(),
+                                [
+                                    'style' => new TableCellStyle([
+                                        'fg' => 'bright-blue',
+                                    ]),
+                                    'colspan' => 2,
+                                ],
+                            )],
                         ['Validator', 'Status']
                     ]);
 
