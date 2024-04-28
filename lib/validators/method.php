@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Method;
 
 use ReflectionMethod;
+use ReflectionNamedType;
 use ReflectionParameter;
+use ReflectionUnionType;
 use TBoileau\PhpCodePolicyEnforcer\Expression\ConditionalExpression;
+use TBoileau\PhpCodePolicyEnforcer\Expression\Expression;
+use TBoileau\PhpCodePolicyEnforcer\Reflection\ReflectionClass;
 
 function containsParameters(int $numberOfParameters): ConditionalExpression
 {
@@ -18,7 +22,7 @@ function containsParameters(int $numberOfParameters): ConditionalExpression
     );
 }
 
-function hasParameter(string $parameter): ConditionalExpression
+function hasParameter(string $parameter, ?Expression $expression = null): ConditionalExpression
 {
     return new ConditionalExpression(
         name: 'hasParameter',
@@ -30,15 +34,28 @@ function hasParameter(string $parameter): ConditionalExpression
         ) === 1,
         parameters: ['parameter' => $parameter],
         message: 'has a parameter named "{{ parameter }}"',
+        childExpression: $expression,
+        childValues: static fn (ReflectionMethod $value): array => array_filter(
+            $value->getParameters(),
+            static fn (ReflectionParameter $param): bool => $param->getName() === $parameter
+        )
     );
 }
 
-function hasReturnType(): ConditionalExpression
+function hasReturnType(?Expression $expression = null): ConditionalExpression
 {
     return new ConditionalExpression(
         name: 'hasReturnType',
         validator: static fn (ReflectionMethod $value): bool => $value->hasReturnType(),
         message: 'has a "return type"',
+        childExpression: $expression,
+        childValues: static fn (ReflectionMethod $value): array => $value->hasReturnType()
+            ? (
+                $value->getReturnType() instanceof ReflectionNamedType
+                    ? [$value->getReturnType()]
+                    : $value->getReturnType()->getTypes()
+            )
+            : []
     );
 }
 

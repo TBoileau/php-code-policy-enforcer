@@ -39,6 +39,9 @@
       "lib/operators/operators.php",
       "lib/validators/class.php",
       "lib/validators/method.php",
+      "lib/validators/property.php",
+      "lib/validators/parameter.php",
+      "lib/validators/type.php",
       "lib/helpers.php"
     ]
   },

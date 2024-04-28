@@ -24,6 +24,8 @@ use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Grault\Qux;
 use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Quux;
 use TBoileau\PhpCodePolicyEnforcer\Tests\Fixtures\Xyzzy;
 
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\containsMethods;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\containsProperties;
 use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\dependsOn;
 use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\hasAttribute;
 use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\hasConstant;
@@ -49,6 +51,8 @@ use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\isSubclassOf;
 use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\isTrait;
 use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\isUserDefined;
 use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\matchWith;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\methods;
+use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\properties;
 use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\residesIn;
 use function TBoileau\PhpCodePolicyEnforcer\Lib\Validator\Class\uses;
 
@@ -112,5 +116,9 @@ final class ClassValidatorTest extends TestCase
         yield 'isUserDefined' => [Foo::class, isUserDefined(), null];
         yield 'isAnonymous' => [Foo::class, null, isAnonymous()];
         yield 'hasConstructor' => [Foo::class, null, hasConstructor()];
+        yield 'containsMethods' => [Foo::class, containsMethods(4), containsMethods(1)];
+        yield 'containsProperties' => [Foo::class, containsProperties(1), containsProperties(2)];
+        yield 'methods' => [Foo::class, methods(), null];
+        yield 'properties' => [Foo::class, properties(), null];
     }
 }
