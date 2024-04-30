@@ -11,7 +11,7 @@ use TBoileau\PhpCodePolicyEnforcer\Expression\LogicalExpression;
 enum Type: string
 {
     case Conditional = ConditionalExpression::class;
-    case Expression = LogicalExpression::class;
+    case Logical = LogicalExpression::class;
 
     public function equals(Expression $expression): bool
     {

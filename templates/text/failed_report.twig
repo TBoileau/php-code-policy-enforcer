@@ -1,9 +1,9 @@
 {% apply sanitize|raw %}
-{% if expression.isChildExpression %}
-{% for child in expression.trace %}
-{{ not loop.first ? 'which should ' : 'Should ' }}{{ include(template_from_string(child.message), child.parameters)|conditional(child, true)|raw }}
+{% if report.expression.isChildExpression %}
+{% for child in report.trace|filter(child => child.type.name == 'Conditional')|reverse %}
+{{ not loop.first ? 'which should ' : 'Should ' }}{{ include(template_from_string(child.expression.message), child.expression.parameters)|conditional(child.expression, true)|raw }}
 {% endfor %}
 {% else %}
-Should {{ include(template_from_string(expression.message), expression.parameters)|conditional(expression, true)|raw }}
+Should {{ include(template_from_string(report.expression.message), report.expression.parameters)|conditional(report.expression, true)|raw }}
 {% endif %}
 {% endapply %}

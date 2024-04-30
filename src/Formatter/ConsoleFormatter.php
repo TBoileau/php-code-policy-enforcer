@@ -8,6 +8,7 @@ use RuntimeException;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Helper\TableCell;
 use Symfony\Component\Console\Helper\TableCellStyle;
+use Symfony\Component\Console\Helper\TableSeparator;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
@@ -72,7 +73,7 @@ final readonly class ConsoleFormatter implements Formatter
             if (count($violations) > 0) {
                 $style->section('Violations');
 
-                $maxWidth = max(...array_map(fn ($value) => strlen($value->value()->getName()), $violations));
+                $maxWidth = max(0, ...array_map(fn ($value) => strlen($value->value()->getName()), $violations));
 
                 foreach ($violations as $valueReport) {
                     $table = new Table($this->output);
@@ -91,19 +92,19 @@ final readonly class ConsoleFormatter implements Formatter
                         ['Validator', 'Status']
                     ]);
 
-                    $failedReports = $valueReport->should()->filter(type: Type::Conditional, status: Status::Failed);
+                    $failedReports = $valueReport->should()->getFailedReports();
 
-                    foreach ($failedReports as $failedReport) {
+                    foreach (array_values($failedReports) as $k => $failedReport) {
                         $message = $this->formatText(
                             $templating->render(
                                 'failed_report.twig',
-                                [
-                                    'expression' => $failedReport->expression(),
-                                    'infinitive' => false,
-                                    'nested' => false,
-                                ]
+                                ['report' => $failedReport]
                             )
                         );
+
+                        if ($k > 0) {
+                            $table->addRow(new TableSeparator());
+                        }
 
                         $table->addRow([
                             $message,
