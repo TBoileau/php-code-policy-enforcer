@@ -33,22 +33,6 @@ trait NestedExpressionTrait
         return $this->parent->isChildExpression();
     }
 
-    public function getTrace(): array
-    {
-        $trace = [];
-
-        $current = $this;
-
-        while (null !== $current) {
-            if ($current instanceof ConditionalExpression) {
-                $trace[] = $current;
-            }
-            $current = $current->getParent();
-        }
-
-        return array_reverse($trace);
-    }
-
     public function getLevel(): int
     {
         return null === $this->parent ? 0 : $this->parent->getLevel() + 1;

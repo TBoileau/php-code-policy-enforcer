@@ -17,9 +17,4 @@ interface Expression
     public function getLevel(): int;
 
     public function isChildExpression(): bool;
-
-    /**
-     * @return Expression[]
-     */
-    public function getTrace(): array;
 }
